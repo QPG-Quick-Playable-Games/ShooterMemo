@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Shooter Memo - A 3D Shooter</title>
+<title>SHOOTER MEMO // 3D Shooter</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -240,9 +240,12 @@
   @keyframes spin{to{transform:rotate(360deg);}}
   .loading p{font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--text-dim); letter-spacing:.08em;}
 
-  @media (min-width:640px){
-    #app{max-width:480px; margin:0 auto; box-shadow:0 0 60px rgba(0,0,0,.6); left:0; right:0;}
-    body{background:#000;}
+  /* full-screen on every device — no boxed/simulator frame */
+  #app{width:100vw; height:100vh; width:100dvw; height:100dvh;}
+  @media (min-width:900px){
+    /* wide desktop: keep HUD/menu content from stretching edge-to-edge, but canvas still fills the window */
+    .screen{padding-left:calc(20px + var(--safe-left)); padding-right:calc(20px + var(--safe-right));}
+    .hud-top{max-width:900px; margin:0 auto; left:calc(10px + var(--safe-left)); right:calc(10px + var(--safe-right));}
   }
 </style>
 </head>
@@ -400,7 +403,7 @@
 "use strict";
 
 /* ============================================================
-   NEON STRIKE — single-file 3D shooter
+   SHOOTER MEMO — single-file 3D shooter
    Sections: Utils -> Renderer/Scene -> Arena -> Player -> Weapons/Particles
              -> Enemy AI (SP) -> Networking (MP, PeerJS) -> Input -> UI/State -> Loop
    ============================================================ */
@@ -416,7 +419,7 @@ var Store = {
   get:function(k,def){ try{ var v = localStorage.getItem(k); return v===null?def:JSON.parse(v);}catch(e){return def;} },
   set:function(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 };
-var bestScore = Store.get('neonstrike_best_sp', 0);
+var bestScore = Store.get('shootermemo_best_sp', 0);
 $('bestScoreChip').textContent = bestScore;
 
 /* ---------------- renderer / scene ---------------- */
@@ -672,7 +675,7 @@ var player = {
   radius:0.5,
   speed:6.2,
   alive:true,
-  name: Store.get('neonstrike_name','PLAYER')
+  name: Store.get('shootermemo_name','PLAYER')
 };
 
 function respawnPlayer(){
@@ -845,7 +848,7 @@ function endSinglePlayer(){
   player.alive = false;
   App.prevPlayState = STATE.SP_PLAY;
   var isBest = SP.score > bestScore;
-  if(isBest){ bestScore = SP.score; Store.set('neonstrike_best_sp', bestScore); $('bestScoreChip').textContent = bestScore; }
+  if(isBest){ bestScore = SP.score; Store.set('shootermemo_best_sp', bestScore); $('bestScoreChip').textContent = bestScore; }
   $('goTitle').textContent = 'Mission Over';
   $('goSub').textContent = 'Overwhelmed at wave ' + SP.wave + '.';
   $('goScore').textContent = SP.score;
@@ -1026,12 +1029,12 @@ function setupPeerHandlers(conn, id){
 
 function createRoom(){
   var name = $('nameHost').value.trim() || 'PLAYER';
-  Net.myName = name; Store.set('neonstrike_name', name);
+  Net.myName = name; Store.set('shootermemo_name', name);
   $('hostStatus').textContent = 'Opening room…';
   $('hostStatus').className = 'status-line';
   var code = makeCode(5);
   try{
-    Net.peer = new Peer('neonstrike-'+code, { debug:0 });
+    Net.peer = new Peer('shootermemo-'+code, { debug:0 });
   }catch(e){ $('hostStatus').textContent='Could not start networking.'; $('hostStatus').className='status-line err'; return; }
 
   Net.peer.on('open', function(id){
@@ -1060,7 +1063,7 @@ function joinRoom(){
   var name = $('nameJoin').value.trim() || 'PLAYER';
   var code = $('joinCode').value.trim().toUpperCase();
   if(!code){ $('joinStatus').textContent='Enter a room code.'; $('joinStatus').className='status-line err'; return; }
-  Net.myName = name; Store.set('neonstrike_name', name);
+  Net.myName = name; Store.set('shootermemo_name', name);
   $('joinStatus').textContent = 'Connecting…';
   $('joinStatus').className = 'status-line';
   try{
@@ -1069,7 +1072,7 @@ function joinRoom(){
 
   Net.peer.on('open', function(id){
     Net.myId = id; Net.isHost = false;
-    var conn = Net.peer.connect('neonstrike-'+code, { reliable:true });
+    var conn = Net.peer.connect('shootermemo-'+code, { reliable:true });
     conn.on('open', function(){
       Net.conns.host = conn;
       setupPeerHandlers(conn, 'host');
@@ -1444,8 +1447,8 @@ $('btnHow').addEventListener('click', function(){ setState(STATE.HOW); });
 $('btnHowBack').addEventListener('click', function(){ setState(STATE.MENU); });
 $('btnMpBack').addEventListener('click', function(){ teardownNet(); setState(STATE.MENU); });
 
-$('nameHost').value = Net.myName = Store.get('neonstrike_name','PLAYER');
-$('nameJoin').value = Store.get('neonstrike_name','PLAYER');
+$('nameHost').value = Net.myName = Store.get('shootermemo_name','PLAYER');
+$('nameJoin').value = Store.get('shootermemo_name','PLAYER');
 
 $('tabHost').addEventListener('click', function(){
   $('tabHost').classList.add('on'); $('tabJoin').classList.remove('on');
