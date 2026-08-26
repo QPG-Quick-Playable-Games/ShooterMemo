@@ -866,7 +866,17 @@ function handleNetMessage(msg, fromConnId){
       Net.scoreboard[msg.killer] = Net.scoreboard[msg.killer] || {name:msg.killerName,kills:0,deaths:0}; Net.scoreboard[msg.killer].kills++;
       Net.scoreboard[msg.victim] = Net.scoreboard[msg.victim] || {name:msg.victimName,kills:0,deaths:0}; Net.scoreboard[msg.victim].deaths++;
       pushKillFeed(msg.killerName + ' ELIMINATED ' + msg.victimName); break;
-    case 'join': ensureRemote(msg.from, msg.name); break;
+    case 'join': 
+      ensureRemote(msg.from, msg.name); 
+      
+      // Determine which list to update based on if you are hosting or joining
+      var list = Net.isHost ? $('hostLobbyList') : $('joinLobbyList');
+      
+      // Create and append the new UI element
+      var li = document.createElement('li');
+      li.textContent = msg.name + ' is in the party';
+      list.appendChild(li);
+      break;
     case 'start': if(!Net.isHost) beginMultiplayerMatch(); break;
     case 'pu_spawn': PowerUpSystem.spawn(msg.x, msg.z); break;
     case 'pu_collect': PowerUpSystem.collect(); break;
