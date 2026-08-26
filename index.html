@@ -240,10 +240,9 @@
   @keyframes spin{to{transform:rotate(360deg);}}
   .loading p{font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--text-dim); letter-spacing:.08em;}
 
-  /* full-screen on every device — no boxed/simulator frame */
+  /* full-screen on every device */
   #app{width:100vw; height:100vh; width:100dvw; height:100dvh;}
   @media (min-width:900px){
-    /* wide desktop: keep HUD/menu content from stretching edge-to-edge, but canvas still fills the window */
     .screen{padding-left:calc(20px + var(--safe-left)); padding-right:calc(20px + var(--safe-right));}
     .hud-top{max-width:900px; margin:0 auto; left:calc(10px + var(--safe-left)); right:calc(10px + var(--safe-right));}
   }
@@ -281,6 +280,7 @@
       <div class="ctrl-row"><div class="ctrl-icon">R</div><div class="ctrl-txt"><b>Look / Aim</b><span>Drag right side of screen, or mouse (click to lock)</span></div></div>
       <div class="ctrl-row"><div class="ctrl-icon">◉</div><div class="ctrl-txt"><b>Fire</b><span>Hold FIRE button, or hold left mouse click</span></div></div>
       <div class="ctrl-row"><div class="ctrl-icon">▲</div><div class="ctrl-txt"><b>Jump</b><span>Tap JUMP button or press Space</span></div></div>
+      <div class="ctrl-row"><div class="ctrl-icon">HP</div><div class="ctrl-txt"><b>Power-Ups</b><span>Walk over floating green boxes to heal!</span></div></div>
       <div class="ctrl-row"><div class="ctrl-icon">‖</div><div class="ctrl-txt"><b>Pause</b><span>Top-right pause icon, or Esc</span></div></div>
     </div>
     <div class="menu-stack" style="max-width:420px;">
@@ -402,12 +402,6 @@
 (function(){
 "use strict";
 
-/* ============================================================
-   SHOOTER MEMO — single-file 3D shooter
-   Sections: Utils -> Renderer/Scene -> Arena -> Player -> Weapons/Particles
-             -> Enemy AI (SP) -> Networking (MP, PeerJS) -> Input -> UI/State -> Loop
-   ============================================================ */
-
 var $ = function(id){ return document.getElementById(id); };
 var clamp = function(v,a,b){ return Math.max(a,Math.min(b,v)); };
 var lerp = function(a,b,t){ return a+(b-a)*t; };
@@ -454,11 +448,6 @@ scene.add(hemi);
 var sun = new THREE.DirectionalLight(0x9fd8ff, 0.9);
 sun.position.set(18, 26, -10);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024,1024);
-sun.shadow.camera.left = -35; sun.shadow.camera.right = 35;
-sun.shadow.camera.top = 35; sun.shadow.camera.bottom = -35;
-sun.shadow.camera.far = 80;
-sun.shadow.bias = -0.0025;
 scene.add(sun);
 var rim = new THREE.PointLight(0xff3d9a, 1.1, 60, 2);
 rim.position.set(-14, 6, -14);
@@ -467,7 +456,7 @@ var rim2 = new THREE.PointLight(0x3df2ff, 1.0, 60, 2);
 rim2.position.set(14, 6, 14);
 scene.add(rim2);
 
-/* starfield for atmosphere */
+/* starfield */
 (function(){
   var n = 700, pos = new Float32Array(n*3);
   for(var i=0;i<n;i++){
@@ -484,7 +473,7 @@ scene.add(rim2);
 
 /* ---------------- arena ---------------- */
 var ARENA_HALF = 28;
-var obstacles = []; // {mesh, radius}
+var obstacles = [];
 
 function buildArena(){
   var floorGeo = new THREE.PlaneGeometry(ARENA_HALF*2, ARENA_HALF*2, 1, 1);
@@ -500,7 +489,6 @@ function buildArena(){
   grid.material.opacity = 0.35;
   scene.add(grid);
 
-  // perimeter neon walls
   var wallMat = new THREE.MeshStandardMaterial({ color:0x0c1830, roughness:0.6, metalness:0.3, emissive:0x0b2a3a, emissiveIntensity:0.4 });
   var wallH = 5, wallT = 1;
   var wallDefs = [
@@ -513,14 +501,9 @@ function buildArena(){
     var geo = new THREE.BoxGeometry(d[2], wallH, d[3]);
     var mesh = new THREE.Mesh(geo, wallMat);
     mesh.position.set(d[0], wallH/2, d[1]);
-    mesh.castShadow = true; mesh.receiveShadow = true;
     scene.add(mesh);
-    var edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({color:0x3df2ff, transparent:true, opacity:0.5}));
-    edges.position.copy(mesh.position);
-    scene.add(edges);
   });
 
-  // scattered cover pillars
   var pillarMat = new THREE.MeshStandardMaterial({ color:0x101c30, roughness:0.55, metalness:0.4, emissive:0x1a2f52, emissiveIntensity:0.25 });
   var coords = [];
   var tries=0;
@@ -537,19 +520,13 @@ function buildArena(){
     var geo = new THREE.BoxGeometry(w,h,w);
     var mesh = new THREE.Mesh(geo, pillarMat);
     mesh.position.set(c[0], h/2, c[1]);
-    mesh.castShadow = true; mesh.receiveShadow = true;
     scene.add(mesh);
-    var edgeColor = Math.random()>0.5 ? 0xff3d9a : 0x3df2ff;
-    var edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({color:edgeColor, transparent:true, opacity:0.6}));
-    edges.position.copy(mesh.position);
-    scene.add(edges);
     obstacles.push({ x:c[0], z:c[1], r: (w*0.5)*1.05 });
   });
 }
 buildArena();
 
 function collideCircle(x,z,radius){
-  // clamp against arena bounds
   x = clamp(x, -ARENA_HALF+0.6, ARENA_HALF-0.6);
   z = clamp(z, -ARENA_HALF+0.6, ARENA_HALF-0.6);
   for(var i=0;i<obstacles.length;i++){
@@ -566,6 +543,69 @@ function collideCircle(x,z,radius){
   return [x,z];
 }
 
+/* ---------------- POWER-UPS ---------------- */
+var PowerUpSystem = {
+  active: false,
+  mesh: null,
+  light: null,
+  x: 0, z: 0,
+  timer: 0,
+  init: function() {
+    this.mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 0.6, 0.6),
+      new THREE.MeshStandardMaterial({ color: 0x5dffb0, emissive: 0x5dffb0, emissiveIntensity: 0.8, transparent: true, opacity: 0.9 })
+    );
+    this.light = new THREE.PointLight(0x5dffb0, 1.5, 8, 2);
+    this.mesh.add(this.light);
+    this.mesh.visible = false;
+    scene.add(this.mesh);
+  },
+  spawn: function(x, z) {
+    this.x = x; this.z = z;
+    this.mesh.position.set(x, 1.0, z);
+    this.mesh.visible = true;
+    this.active = true;
+  },
+  collect: function() {
+    this.active = false;
+    this.mesh.visible = false;
+    burst(this.mesh.position, 0x5dffb0, 20, 3);
+    player.hp = player.maxHp;
+    updateHpUI();
+    pushKillFeed("HP FULLY RESTORED!");
+  },
+  update: function(dt) {
+    if(this.active) {
+      this.mesh.rotation.x += dt;
+      this.mesh.rotation.y += dt * 1.5;
+      
+      // Collision check with player
+      if(player.alive && Math.hypot(player.x - this.x, player.z - this.z) < 1.5) {
+        if(App.mode === 'sp') {
+          this.collect();
+          this.timer = 15; // Cooldown before next spawn
+        } else if(App.mode === 'mp' && Net.isHost) {
+          // If host, validate and broadcast
+          this.collect();
+          netSend({ type: 'pu_collect' });
+          this.timer = 15;
+        }
+      }
+    } else {
+      if(App.mode === 'sp' || (App.mode === 'mp' && Net.isHost)) {
+        this.timer -= dt;
+        if(this.timer <= 0 && isPlayingState(App.state)) {
+          var nx = rand(-ARENA_HALF+5, ARENA_HALF-5);
+          var nz = rand(-ARENA_HALF+5, ARENA_HALF-5);
+          this.spawn(nx, nz);
+          if(App.mode === 'mp') netSend({ type: 'pu_spawn', x: nx, z: nz });
+        }
+      }
+    }
+  }
+};
+PowerUpSystem.init();
+
 /* ---------------- weapon view-model ---------------- */
 var weaponGroup = new THREE.Group();
 (function(){
@@ -574,17 +614,10 @@ var weaponGroup = new THREE.Group();
   var body = new THREE.Mesh(new THREE.BoxGeometry(0.09,0.09,0.42), bodyMat);
   body.position.set(0,0,-0.1);
   weaponGroup.add(body);
-  var grip = new THREE.Mesh(new THREE.BoxGeometry(0.07,0.16,0.07), bodyMat);
-  grip.position.set(0,-0.11,0.06);
-  grip.rotation.x = 0.25;
-  weaponGroup.add(grip);
   var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.22,10), bodyMat);
   barrel.rotation.x = Math.PI/2;
   barrel.position.set(0,0.015,-0.34);
   weaponGroup.add(barrel);
-  var stripe = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.012,0.04), accentMat);
-  stripe.position.set(0,0.05,-0.02);
-  weaponGroup.add(stripe);
   weaponGroup.position.set(0.16,-0.16,-0.3);
   camera.add(weaponGroup);
 })();
@@ -601,7 +634,7 @@ weaponGroup.add(muzzleFlash);
 
 var weaponBob = { t:0, recoil:0 };
 
-/* ---------------- particles (pooled) ---------------- */
+/* ---------------- particles / tracers / shake (pooled) ---------------- */
 var MAX_PARTICLES = 160;
 var particlePool = [];
 var particleMat = new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true });
@@ -617,17 +650,12 @@ function burst(pos, color, count, speed){
   for(var i=0;i<particlePool.length && made<count;i++){
     var p = particlePool[i];
     if(p.active) continue;
-    p.active = true;
-    p.mesh.visible = true;
-    p.mesh.position.copy(pos);
-    p.mesh.scale.setScalar(rand(0.6,1.3));
-    p.mesh.material.color.set(color);
-    p.mesh.material.opacity = 1;
+    p.active = true; p.mesh.visible = true; p.mesh.position.copy(pos);
+    p.mesh.scale.setScalar(rand(0.6,1.3)); p.mesh.material.color.set(color); p.mesh.material.opacity = 1;
     var a = rand(0,Math.PI*2), el = rand(0.2,1);
     var s = speed*rand(0.5,1);
     p.vel.set(Math.cos(a)*s*el, rand(0.5,1)*s, Math.sin(a)*s*el);
-    p.life = 0;
-    p.maxLife = rand(0.35,0.7);
+    p.life = 0; p.maxLife = rand(0.35,0.7);
     made++;
   }
 }
@@ -645,7 +673,6 @@ function updateParticles(dt){
   }
 }
 
-/* tracers */
 var tracers = [];
 var tracerMat = new THREE.LineBasicMaterial({ color:0xbfffff, transparent:true, opacity:0.9 });
 function spawnTracer(from,to){
@@ -656,25 +683,18 @@ function spawnTracer(from,to){
 }
 function updateTracers(dt){
   for(var i=tracers.length-1;i>=0;i--){
-    var t = tracers[i];
-    t.life += dt;
+    var t = tracers[i]; t.life += dt;
     t.line.material.opacity = Math.max(0, 0.9 - t.life*7);
-    if(t.life > 0.13){ scene.remove(t.line); t.line.geometry.dispose(); t.line.material.dispose(); tracers.splice(i,1); }
+    if(t.life > 0.13){ scene.remove(t.line); t.line.geometry.dispose(); tracers.splice(i,1); }
   }
 }
-
-/* screen shake */
 var shake = { t:0, mag:0 };
 function addShake(mag){ shake.mag = Math.max(shake.mag, mag); }
 
 /* ---------------- player state ---------------- */
 var player = {
   x:0, z:8, y:0, vy:0, grounded:true,
-  yaw:0, pitch:0,
-  hp:100, maxHp:100,
-  radius:0.5,
-  speed:6.2,
-  alive:true,
+  yaw:0, pitch:0, hp:100, maxHp:100, radius:0.5, speed:6.2, alive:true,
   name: Store.get('shootermemo_name','PLAYER')
 };
 
@@ -683,6 +703,7 @@ function respawnPlayer(){
   player.x = Math.cos(a)*r; player.z = Math.sin(a)*r;
   player.y = 0; player.vy = 0; player.grounded = true;
   player.hp = player.maxHp; player.alive = true;
+  updateHpUI();
 }
 
 function applyCamera(){
@@ -694,7 +715,6 @@ function applyCamera(){
   if(shake.mag > 0.0005){
     camera.position.x += rand(-1,1)*shake.mag;
     camera.position.y += rand(-1,1)*shake.mag;
-    camera.rotation.z += rand(-1,1)*shake.mag*0.4;
   }
 }
 
@@ -706,44 +726,15 @@ var fireHeld = false, lastShot = 0, FIRE_RATE = 0.16, FIRE_DAMAGE = 24;
 var moveInput = { x:0, z:0 };
 var lookDelta = { x:0, y:0 };
 
-/* ===================================================================
-   SINGLE PLAYER — wave survival
-   =================================================================== */
-var SP = { wave:1, score:0, kills:0, spawnTimer:0, enemies:[], active:false, waveEnemiesLeft:0 };
-
-function makeBotMesh(){
-  var g = new THREE.Group();
-  var bodyMat = new THREE.MeshStandardMaterial({ color:0x3a1830, roughness:0.5, metalness:0.35, emissive:0xff3d9a, emissiveIntensity:0.35 });
-  var torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.35,0.7,4,8), bodyMat);
-  torso.position.y = 1.0;
-  torso.castShadow = true;
-  g.add(torso);
-  var headMat = new THREE.MeshStandardMaterial({ color:0x1c0d18, roughness:0.4, metalness:0.5, emissive:0xff3d9a, emissiveIntensity:0.6 });
-  var head = new THREE.Mesh(new THREE.SphereGeometry(0.24,12,10), headMat);
-  head.position.y = 1.66;
-  head.castShadow = true;
-  g.add(head);
-  var eye = new THREE.Mesh(new THREE.SphereGeometry(0.05,8,8), new THREE.MeshBasicMaterial({color:0xffffff}));
-  eye.position.set(0,1.66,0.22);
-  g.add(eye);
-  return g;
-}
+/* ---------------- SP Logic ---------------- */
+var SP = { wave:1, score:0, kills:0, enemies:[], active:false, waveEnemiesLeft:0 };
 
 function spawnBot(diffMul){
   var a = rand(0,Math.PI*2), r = rand(16, ARENA_HALF-3);
-  var bot = {
-    mesh: makeBotMesh(),
-    x: Math.cos(a)*r, z: Math.sin(a)*r,
-    hp: 60 + SP.wave*8,
-    maxHp: 60 + SP.wave*8,
-    speed: rand(1.6,2.3)*diffMul,
-    fireTimer: rand(0.5,1.5),
-    fireRate: Math.max(0.9, 2.6 - SP.wave*0.08),
-    dmg: 4 + Math.floor(SP.wave*0.6),
-    strafeDir: choice([-1,1]),
-    strafeTimer: rand(1,3),
-    alive: true,
-  };
+  var g = new THREE.Group();
+  var mat = new THREE.MeshStandardMaterial({ color:0x3a1830, emissive:0xff3d9a, emissiveIntensity:0.35 });
+  g.add(new THREE.Mesh(new THREE.CapsuleGeometry(0.35,0.7,4,8), mat).translateY(1.0));
+  var bot = { mesh: g, x: Math.cos(a)*r, z: Math.sin(a)*r, hp: 60 + SP.wave*8, speed: rand(1.6,2.3)*diffMul, fireTimer: rand(0.5,1.5), fireRate: Math.max(0.9, 2.6 - SP.wave*0.08), dmg: 4 + Math.floor(SP.wave*0.6), strafeDir: choice([-1,1]), strafeTimer: rand(1,3), alive: true };
   bot.mesh.position.set(bot.x, 0, bot.z);
   scene.add(bot.mesh);
   SP.enemies.push(bot);
@@ -752,129 +743,83 @@ function spawnBot(diffMul){
 function startWave(){
   $('waveNum').textContent = SP.wave;
   var count = Math.min(3 + Math.floor(SP.wave*1.3), 12);
-  var diffMul = 1 + SP.wave*0.06;
-  for(var i=0;i<count;i++) spawnBot(diffMul);
+  for(var i=0;i<count;i++) spawnBot(1 + SP.wave*0.06);
   SP.waveEnemiesLeft = count;
   showWaveBanner('WAVE ' + SP.wave);
 }
 
 function showWaveBanner(text){
-  var b = $('waveBanner');
-  b.textContent = text;
-  b.classList.add('show');
+  var b = $('waveBanner'); b.textContent = text; b.classList.add('show');
   setTimeout(function(){ b.classList.remove('show'); }, 1600);
 }
 
 function updateBots(dt){
   for(var i=SP.enemies.length-1;i>=0;i--){
-    var b = SP.enemies[i];
-    if(!b.alive) continue;
-    var dx = player.x-b.x, dz = player.z-b.z;
-    var dist = Math.hypot(dx,dz);
-    var desired = 9;
+    var b = SP.enemies[i]; if(!b.alive) continue;
+    var dx = player.x-b.x, dz = player.z-b.z, dist = Math.hypot(dx,dz);
     var mvx=0, mvz=0;
-    if(dist > desired+1){ mvx = dx/dist; mvz = dz/dist; }
-    else if(dist < desired-1){ mvx = -dx/dist; mvz = -dz/dist; }
-    b.strafeTimer -= dt;
-    if(b.strafeTimer<=0){ b.strafeDir *= -1; b.strafeTimer = rand(1,3); }
-    var px = -dz/(dist||1), pz = dx/(dist||1);
-    mvx += px*b.strafeDir*0.7; mvz += pz*b.strafeDir*0.7;
+    if(dist > 10){ mvx = dx/dist; mvz = dz/dist; } else if(dist < 8){ mvx = -dx/dist; mvz = -dz/dist; }
+    b.strafeTimer -= dt; if(b.strafeTimer<=0){ b.strafeDir *= -1; b.strafeTimer = rand(1,3); }
+    mvx += (-dz/(dist||1))*b.strafeDir*0.7; mvz += (dx/(dist||1))*b.strafeDir*0.7;
     var mlen = Math.hypot(mvx,mvz)||1;
-    var nx = b.x + (mvx/mlen)*b.speed*dt;
-    var nz = b.z + (mvz/mlen)*b.speed*dt;
-    var c = collideCircle(nx,nz,0.45);
+    var c = collideCircle(b.x + (mvx/mlen)*b.speed*dt, b.z + (mvz/mlen)*b.speed*dt, 0.45);
     b.x = c[0]; b.z = c[1];
-    b.mesh.position.set(b.x,0,b.z);
-    b.mesh.lookAt(player.x, 1.0, player.z);
+    b.mesh.position.set(b.x,0,b.z); b.mesh.lookAt(player.x, 1.0, player.z);
 
     b.fireTimer -= dt;
     if(b.fireTimer <= 0 && dist < 22 && player.alive){
       b.fireTimer = b.fireRate;
-      var hitChance = clamp(1 - dist/26, 0.12, 0.72);
       spawnTracer(new THREE.Vector3(b.x, 1.5, b.z), new THREE.Vector3(player.x, PLAYER_HEIGHT, player.z));
-      if(Math.random() < hitChance && player.alive){
-        damagePlayer(b.dmg);
-      }
+      if(Math.random() < clamp(1 - dist/26, 0.12, 0.72)) damagePlayer(b.dmg);
     }
   }
 }
 
 function killBot(b){
-  b.alive = false;
-  burst(new THREE.Vector3(b.x,1.1,b.z), 0xff3d9a, 26, 4.2);
+  b.alive = false; burst(new THREE.Vector3(b.x,1.1,b.z), 0xff3d9a, 26, 4.2);
   scene.remove(b.mesh);
-  SP.kills++; SP.score += 100;
-  SP.waveEnemiesLeft--;
-  $('scoreNum').textContent = SP.score;
-  addShake(0.02);
-  if(SP.waveEnemiesLeft<=0){
-    SP.wave++;
-    SP.score += 50;
-    setTimeout(function(){ if(SP.active) startWave(); }, 900);
-  }
+  SP.kills++; SP.score += 100; SP.waveEnemiesLeft--;
+  $('scoreNum').textContent = SP.score; addShake(0.02);
+  if(SP.waveEnemiesLeft<=0){ SP.wave++; SP.score += 50; setTimeout(function(){ if(SP.active) startWave(); }, 900); }
 }
 
 function damagePlayer(amount){
   if(!player.alive) return;
   player.hp = clamp(player.hp-amount,0,player.maxHp);
-  updateHpUI();
-  flashDamage();
-  addShake(0.015);
+  updateHpUI(); flashDamage(); addShake(0.015);
   if(player.hp<=0){ endSinglePlayer(); }
 }
+
 function updateHpUI(){
   var pct = clamp(player.hp/player.maxHp,0,1)*100;
-  var fill = $('hpFill');
-  fill.style.width = pct+'%';
+  var fill = $('hpFill'); fill.style.width = pct+'%';
   fill.style.background = pct>50 ? 'linear-gradient(90deg,#5dffb0,#22d98a)' : (pct>25 ? 'linear-gradient(90deg,#ffb545,#ff8a3d)' : 'linear-gradient(90deg,#ff4d5e,#c92030)');
 }
 var dmgVFXTimer=0;
-function flashDamage(){
-  $('dmgVignette').style.opacity = 0.85;
-  dmgVFXTimer = 0.3;
-}
+function flashDamage(){ $('dmgVignette').style.opacity = 0.85; dmgVFXTimer = 0.3; }
 
 function startSinglePlayer(){
   clearWorldEntities();
   SP.wave=1; SP.score=0; SP.kills=0; SP.enemies=[]; SP.active=true;
+  PowerUpSystem.timer = 10; PowerUpSystem.active = false; PowerUpSystem.mesh.visible = false;
   respawnPlayer();
   App.mode='sp'; setState(STATE.SP_PLAY);
-  $('scoreNum').textContent = 0;
-  startWave();
-  requestLock();
+  $('scoreNum').textContent = 0; startWave(); requestLock();
 }
 function endSinglePlayer(){
-  SP.active = false;
-  player.alive = false;
-  App.prevPlayState = STATE.SP_PLAY;
-  var isBest = SP.score > bestScore;
-  if(isBest){ bestScore = SP.score; Store.set('shootermemo_best_sp', bestScore); $('bestScoreChip').textContent = bestScore; }
-  $('goTitle').textContent = 'Mission Over';
-  $('goSub').textContent = 'Overwhelmed at wave ' + SP.wave + '.';
-  $('goScore').textContent = SP.score;
-  $('goWave').textContent = SP.wave;
-  $('goBest').textContent = bestScore;
-  $('newBestTag').classList.toggle('show', isBest);
-  $('mpScoreboard').innerHTML = '';
-  setState(STATE.GAMEOVER);
-  exitLock();
+  SP.active = false; player.alive = false; App.prevPlayState = STATE.SP_PLAY;
+  if(SP.score > bestScore){ bestScore = SP.score; Store.set('shootermemo_best_sp', bestScore); $('bestScoreChip').textContent = bestScore; $('newBestTag').classList.add('show');} else $('newBestTag').classList.remove('show');
+  $('goTitle').textContent = 'Mission Over'; $('goSub').textContent = 'Overwhelmed at wave ' + SP.wave;
+  $('goScore').textContent = SP.score; $('goWave').textContent = SP.wave; $('goBest').textContent = bestScore;
+  setState(STATE.GAMEOVER); exitLock();
 }
-function clearWorldEntities(){
-  SP.enemies.forEach(function(b){ scene.remove(b.mesh); });
-  SP.enemies = [];
-  Net.clearRemotePlayers();
-}
+function clearWorldEntities(){ SP.enemies.forEach(function(b){ scene.remove(b.mesh); }); SP.enemies = []; Net.clearRemotePlayers(); }
 
-/* ===================================================================
-   MULTIPLAYER — PeerJS star-relay deathmatch
-   =================================================================== */
+
+/* ---------------- MP Logic ---------------- */
 var Net = {
-  peer:null, isHost:false, roomCode:null,
-  conns:{},            // peerId -> DataConnection (host: all clients; client: just host)
-  remote:{},           // peerId -> {mesh,label,pos,rot,hp,name,kills,deaths,target...}
-  myId:null, myName:'PLAYER',
-  active:false, kills:0, deaths:0,
-  scoreboard:{}
+  peer:null, isHost:false, roomCode:null, conns:{}, remote:{}, myId:null, myName:'PLAYER',
+  active:false, kills:0, deaths:0, scoreboard:{}
 };
 
 function makeCode(len){
@@ -883,224 +828,106 @@ function makeCode(len){
   return s;
 }
 
-function makeRemoteMesh(color){
-  var g = new THREE.Group();
-  var mat = new THREE.MeshStandardMaterial({ color:0x14202f, roughness:0.5, metalness:0.4, emissive:color, emissiveIntensity:0.55 });
-  var torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.35,0.7,4,8), mat);
-  torso.position.y = 1.0; torso.castShadow = true;
-  g.add(torso);
-  var head = new THREE.Mesh(new THREE.SphereGeometry(0.24,12,10), mat);
-  head.position.y = 1.66; head.castShadow = true;
-  g.add(head);
-  return g;
-}
-function makeNameSprite(text){
-  var c = document.createElement('canvas'); c.width=256; c.height=64;
-  var ctx = c.getContext('2d');
-  ctx.font = '600 34px Chakra Petch, sans-serif';
-  ctx.fillStyle = '#3df2ff';
-  ctx.textAlign='center';
-  ctx.shadowColor='#3df2ff'; ctx.shadowBlur=10;
-  ctx.fillText(text.toUpperCase(), 128, 42);
-  var tex = new THREE.CanvasTexture(c);
-  var mat = new THREE.SpriteMaterial({ map:tex, transparent:true, depthTest:false });
-  var spr = new THREE.Sprite(mat);
-  spr.scale.set(1.6,0.4,1);
-  spr.position.y = 2.15;
-  return spr;
-}
-
-Net.clearRemotePlayers = function(){
-  Object.keys(Net.remote).forEach(function(id){
-    scene.remove(Net.remote[id].mesh);
-  });
-  Net.remote = {};
-};
+Net.clearRemotePlayers = function(){ Object.keys(Net.remote).forEach(function(id){ scene.remove(Net.remote[id].mesh); }); Net.remote = {}; };
 
 function ensureRemote(id, name){
   if(Net.remote[id]) return Net.remote[id];
-  var color = choice([0xff3d9a,0xffb545,0x5dffb0,0x9d7bff,0xff7a3d]);
-  var mesh = makeRemoteMesh(color);
-  var label = makeNameSprite(name||('P-'+id.slice(0,4)));
-  mesh.add(label);
-  scene.add(mesh);
-  var r = { mesh:mesh, name:name||'PLAYER', pos:new THREE.Vector3(0,0,0), rotY:0,
-            targetPos:new THREE.Vector3(0,0,0), targetRotY:0, hp:100, kills:0, deaths:0, alive:true };
-  Net.remote[id] = r;
-  Net.scoreboard[id] = Net.scoreboard[id] || { name:name||'PLAYER', kills:0, deaths:0 };
-  refreshMpScoreboardLobby();
+  var g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.CapsuleGeometry(0.35,0.7,4,8), new THREE.MeshStandardMaterial({ color:0x14202f, emissive:choice([0xff3d9a,0xffb545,0x5dffb0,0x9d7bff]), emissiveIntensity:0.55 })).translateY(1.0));
+  scene.add(g);
+  var r = { mesh:g, name:name||'PLAYER', pos:new THREE.Vector3(), rotY:0, targetPos:new THREE.Vector3(), targetRotY:0, hp:100, alive:true };
+  Net.remote[id] = r; Net.scoreboard[id] = Net.scoreboard[id] || { name:name||'PLAYER', kills:0, deaths:0 };
   return r;
 }
 
 function netSend(obj){
   var data = JSON.stringify(obj);
-  if(Net.isHost){
-    Object.keys(Net.conns).forEach(function(id){
-      if(id !== obj.from) Net.conns[id].send(data);
-    });
-  } else if(Net.conns.host){
-    Net.conns.host.send(data);
-  }
+  if(Net.isHost){ Object.keys(Net.conns).forEach(function(id){ if(id !== obj.from) Net.conns[id].send(data); }); }
+  else if(Net.conns.host){ Net.conns.host.send(data); }
 }
 function netBroadcastIncluding(obj, exceptId){
-  Object.keys(Net.conns).forEach(function(id){
-    if(id !== exceptId) Net.conns[id].send(JSON.stringify(obj));
-  });
+  Object.keys(Net.conns).forEach(function(id){ if(id !== exceptId) Net.conns[id].send(JSON.stringify(obj)); });
 }
 
 function handleNetMessage(msg, fromConnId){
-  // host relays everything it receives (except direct host-only) to all other clients
-  if(Net.isHost && msg.from !== Net.myId){
-    netBroadcastIncluding(msg, fromConnId);
-  }
+  if(Net.isHost && msg.from !== Net.myId) netBroadcastIncluding(msg, fromConnId);
   switch(msg.type){
     case 'state':
       if(msg.from === Net.myId) return;
       var r = ensureRemote(msg.from, msg.name);
-      r.name = msg.name;
-      r.targetPos.set(msg.x, msg.y, msg.z);
-      r.targetRotY = msg.ry;
-      r.hp = msg.hp;
-      r.alive = msg.alive;
-      r.mesh.visible = msg.alive;
+      r.targetPos.set(msg.x, msg.y, msg.z); r.targetRotY = msg.ry; r.hp = msg.hp; r.alive = msg.alive; r.mesh.visible = msg.alive;
       break;
     case 'shot':
       if(msg.from === Net.myId) return;
-      spawnTracer(new THREE.Vector3(msg.fx,msg.fy,msg.fz), new THREE.Vector3(msg.tx,msg.ty,msg.tz));
-      break;
+      spawnTracer(new THREE.Vector3(msg.fx,msg.fy,msg.fz), new THREE.Vector3(msg.tx,msg.ty,msg.tz)); break;
     case 'hit':
-      if(msg.target !== Net.myId) return;
-      damagePlayerMP(msg.dmg, msg.from);
-      break;
+      if(msg.target === Net.myId) damagePlayerMP(msg.dmg, msg.from); break;
     case 'kill':
-      Net.scoreboard[msg.killer] = Net.scoreboard[msg.killer] || {name:msg.killerName,kills:0,deaths:0};
-      Net.scoreboard[msg.killer].kills++;
-      Net.scoreboard[msg.killer].name = msg.killerName;
-      Net.scoreboard[msg.victim] = Net.scoreboard[msg.victim] || {name:msg.victimName,kills:0,deaths:0};
-      Net.scoreboard[msg.victim].deaths++;
-      Net.scoreboard[msg.victim].name = msg.victimName;
-      pushKillFeed(msg.killerName + ' ELIMINATED ' + msg.victimName);
-      break;
-    case 'join':
-      ensureRemote(msg.from, msg.name);
-      pushLobbyEntry(msg.from, msg.name);
-      break;
-    case 'start':
-      if(!Net.isHost) beginMultiplayerMatch();
-      break;
-    case 'leave':
-      if(Net.remote[msg.from]){ scene.remove(Net.remote[msg.from].mesh); delete Net.remote[msg.from]; }
-      break;
+      Net.scoreboard[msg.killer] = Net.scoreboard[msg.killer] || {name:msg.killerName,kills:0,deaths:0}; Net.scoreboard[msg.killer].kills++;
+      Net.scoreboard[msg.victim] = Net.scoreboard[msg.victim] || {name:msg.victimName,kills:0,deaths:0}; Net.scoreboard[msg.victim].deaths++;
+      pushKillFeed(msg.killerName + ' ELIMINATED ' + msg.victimName); break;
+    case 'join': ensureRemote(msg.from, msg.name); break;
+    case 'start': if(!Net.isHost) beginMultiplayerMatch(); break;
+    case 'pu_spawn': PowerUpSystem.spawn(msg.x, msg.z); break;
+    case 'pu_collect': PowerUpSystem.collect(); break;
+    case 'leave': if(Net.remote[msg.from]){ scene.remove(Net.remote[msg.from].mesh); delete Net.remote[msg.from]; } break;
   }
 }
 
 function pushKillFeed(text){
-  var kf = $('killfeed');
-  var d = document.createElement('div');
-  d.textContent = text;
-  kf.appendChild(d);
+  var kf = $('killfeed'), d = document.createElement('div'); d.textContent = text; kf.appendChild(d);
   if(kf.children.length>4) kf.removeChild(kf.children[0]);
   setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 3200);
 }
 
-function pushLobbyEntry(id, name){
-  var list = Net.isHost ? $('hostLobbyList') : $('joinLobbyList');
-  if(!list) return;
-  var existing = list.querySelector('[data-id="'+id+'"]');
-  if(existing) return;
-  var li = document.createElement('li');
-  li.setAttribute('data-id', id);
-  li.innerHTML = '<span>'+name+'</span><span class="mono">READY</span>';
-  list.appendChild(li);
-}
-function refreshMpScoreboardLobby(){}
-
 function setupPeerHandlers(conn, id){
-  conn.on('data', function(data){
-    var msg; try{ msg = JSON.parse(data); }catch(e){ return; }
-    handleNetMessage(msg, id);
-  });
-  conn.on('close', function(){
-    delete Net.conns[id];
-    if(Net.remote[id]){ scene.remove(Net.remote[id].mesh); delete Net.remote[id]; }
-    pushKillFeed((Net.remote[id]?Net.remote[id].name:'PLAYER') + ' DISCONNECTED');
-  });
+  conn.on('data', function(data){ try{ handleNetMessage(JSON.parse(data), id); }catch(e){} });
+  conn.on('close', function(){ delete Net.conns[id]; if(Net.remote[id]){ scene.remove(Net.remote[id].mesh); delete Net.remote[id]; } });
+}
+
+function getPeerConfig() {
+  return { debug: 0, config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] } };
 }
 
 function createRoom(){
   var name = $('nameHost').value.trim() || 'PLAYER';
   Net.myName = name; Store.set('shootermemo_name', name);
-  $('hostStatus').textContent = 'Opening room…';
-  $('hostStatus').className = 'status-line';
   var code = makeCode(5);
-  try{
-    Net.peer = new Peer('shootermemo-'+code, { debug:0 });
-  }catch(e){ $('hostStatus').textContent='Could not start networking.'; $('hostStatus').className='status-line err'; return; }
+  try{ Net.peer = new Peer('shootermemo-'+code, getPeerConfig()); } catch(e){ return; }
 
   Net.peer.on('open', function(id){
     Net.myId = id; Net.isHost = true; Net.roomCode = code;
-    $('roomCode').textContent = code;
-    $('roomInfo').style.display = 'block';
-    $('hostStatus').textContent = 'Room live — waiting for players…';
-    $('hostStatus').className = 'status-line ok';
-    pushLobbyEntry(id, name+' (HOST)');
+    $('roomCode').textContent = code; $('roomInfo').style.display = 'block';
+    $('hostStatus').textContent = 'Room live — waiting for players…'; $('hostStatus').className = 'status-line ok';
   });
   Net.peer.on('connection', function(conn){
-    conn.on('open', function(){
-      Net.conns[conn.peer] = conn;
-      setupPeerHandlers(conn, conn.peer);
-      $('hostStatus').textContent = 'Player connected: '+conn.peer;
-      $('hostStatus').className = 'status-line ok';
-    });
-  });
-  Net.peer.on('error', function(err){
-    $('hostStatus').textContent = 'Network error: '+(err && err.type ? err.type : 'unknown');
-    $('hostStatus').className = 'status-line err';
+    conn.on('open', function(){ Net.conns[conn.peer] = conn; setupPeerHandlers(conn, conn.peer); });
   });
 }
 
 function joinRoom(){
-  var name = $('nameJoin').value.trim() || 'PLAYER';
-  var code = $('joinCode').value.trim().toUpperCase();
-  if(!code){ $('joinStatus').textContent='Enter a room code.'; $('joinStatus').className='status-line err'; return; }
+  var name = $('nameJoin').value.trim() || 'PLAYER', code = $('joinCode').value.trim().toUpperCase();
   Net.myName = name; Store.set('shootermemo_name', name);
-  $('joinStatus').textContent = 'Connecting…';
-  $('joinStatus').className = 'status-line';
-  try{
-    Net.peer = new Peer(undefined, { debug:0 });
-  }catch(e){ $('joinStatus').textContent='Could not start networking.'; $('joinStatus').className='status-line err'; return; }
+  try{ Net.peer = new Peer(undefined, getPeerConfig()); }catch(e){ return; }
 
   Net.peer.on('open', function(id){
     Net.myId = id; Net.isHost = false;
     var conn = Net.peer.connect('shootermemo-'+code, { reliable:true });
     conn.on('open', function(){
-      Net.conns.host = conn;
-      setupPeerHandlers(conn, 'host');
-      $('joinStatus').textContent = 'Connected. Waiting for host to start…';
-      $('joinStatus').className = 'status-line ok';
+      Net.conns.host = conn; setupPeerHandlers(conn, 'host');
+      $('joinStatus').textContent = 'Connected!'; $('joinStatus').className = 'status-line ok';
       conn.send(JSON.stringify({ type:'join', from:Net.myId, name:Net.myName }));
-      pushLobbyEntry(Net.myId, Net.myName+' (YOU)');
     });
-    conn.on('error', function(){
-      $('joinStatus').textContent = 'Could not reach that room.';
-      $('joinStatus').className = 'status-line err';
-    });
-  });
-  Net.peer.on('error', function(err){
-    $('joinStatus').textContent = 'Network error: '+(err && err.type ? err.type : 'unknown')+'. Check the code and try again.';
-    $('joinStatus').className = 'status-line err';
   });
 }
 
 function beginMultiplayerMatch(){
-  if(Net.isHost){
-    netBroadcastIncluding({ type:'start', from:Net.myId }, null);
-  }
+  if(Net.isHost) netBroadcastIncluding({ type:'start', from:Net.myId }, null);
   clearWorldEntities();
   Net.active = true; Net.kills=0; Net.deaths=0;
+  PowerUpSystem.timer = 10; PowerUpSystem.active = false; PowerUpSystem.mesh.visible = false;
   respawnPlayer();
   App.mode = 'mp'; setState(STATE.MP_PLAY);
-  $('scoreNum').textContent = 0;
   $('statPill').innerHTML = 'KILLS <b id="scoreNum">0</b> &nbsp;·&nbsp; DEATHS <b id="deathNum">0</b>';
   requestLock();
 }
@@ -1109,16 +936,13 @@ var mpStateTimer = 0;
 function updateMultiplayer(dt){
   mpStateTimer -= dt;
   if(mpStateTimer <= 0){
-    mpStateTimer = 0.06; // ~16Hz
+    mpStateTimer = 0.06;
     netSend({ type:'state', from:Net.myId, name:Net.myName, x:player.x, y:player.y, z:player.z, ry:player.yaw, hp:player.hp, alive:player.alive });
   }
   Object.keys(Net.remote).forEach(function(id){
     var r = Net.remote[id];
-    r.pos.lerp(r.targetPos, Math.min(1, dt*12));
-    r.rotY = lerp(r.rotY, r.targetRotY, Math.min(1, dt*12));
-    r.mesh.position.copy(r.pos);
-    r.mesh.rotation.y = r.rotY;
-    r.mesh.visible = r.alive;
+    r.pos.lerp(r.targetPos, Math.min(1, dt*12)); r.rotY = lerp(r.rotY, r.targetRotY, Math.min(1, dt*12));
+    r.mesh.position.copy(r.pos); r.mesh.rotation.y = r.rotY; r.mesh.visible = r.alive;
   });
 }
 
@@ -1127,300 +951,106 @@ function damagePlayerMP(amount, fromId){
   player.hp = clamp(player.hp-amount,0,player.maxHp);
   updateHpUI(); flashDamage(); addShake(0.015);
   if(player.hp<=0 && player.alive){
-    player.alive = false;
-    var killerName = Net.remote[fromId] ? Net.remote[fromId].name : 'ENEMY';
+    player.alive = false; var killerName = Net.remote[fromId] ? Net.remote[fromId].name : 'ENEMY';
     netSend({ type:'kill', from:Net.myId, killer:fromId, killerName:killerName, victim:Net.myId, victimName:Net.myName });
-    Net.deaths++;
-    pushKillFeed(killerName + ' ELIMINATED ' + Net.myName);
+    Net.deaths++; pushKillFeed(killerName + ' ELIMINATED ' + Net.myName);
     $('deathNum') && ($('deathNum').textContent = Net.deaths);
-    setTimeout(function(){
-      if(App.state===STATE.MP_PLAY){ respawnPlayer(); }
-    }, 1600);
+    setTimeout(function(){ if(App.state===STATE.MP_PLAY) respawnPlayer(); }, 1600);
   }
-}
-
-function endMultiplayer(){
-  Net.active = false;
-  var rows = Object.keys(Net.scoreboard).map(function(id){ return Net.scoreboard[id]; });
-  rows.push({ name:Net.myName+' (you)', kills:Net.kills, deaths:Net.deaths });
-  rows.sort(function(a,b){ return b.kills-a.kills; });
-  var html = '<div class="panel" style="text-align:left; padding:14px;"><h2 style="font-size:.9rem;">SCOREBOARD</h2>';
-  rows.forEach(function(r){ html += '<div class="score-row" style="font-size:.75rem;"><span>'+r.name+'</span><span>'+r.kills+'K / '+r.deaths+'D</span></div>'; });
-  html += '</div>';
-  $('mpScoreboard').innerHTML = html;
-  $('goTitle').textContent = 'Match Ended';
-  $('goSub').textContent = 'Thanks for playing.';
-  $('goScore').textContent = Net.kills;
-  $('goWave').textContent = '—';
-  $('goBest').textContent = bestScore;
-  $('newBestTag').classList.remove('show');
-  setState(STATE.GAMEOVER);
-  exitLock();
 }
 
 function teardownNet(){
-  try{
-    if(Net.peer){
-      Object.keys(Net.conns).forEach(function(id){ try{ Net.conns[id].send(JSON.stringify({type:'leave',from:Net.myId})); }catch(e){} });
-      Net.peer.destroy();
-    }
-  }catch(e){}
+  try{ if(Net.peer){ Object.keys(Net.conns).forEach(function(id){ try{ Net.conns[id].send(JSON.stringify({type:'leave',from:Net.myId})); }catch(e){} }); Net.peer.destroy(); } }catch(e){}
   Net.peer=null; Net.isHost=false; Net.conns={}; Net.clearRemotePlayers();
 }
 
-/* raycast hit against remote players (mp) */
-function raycastRemotePlayers(raycaster){
-  var meshes = [], map = [];
-  Object.keys(Net.remote).forEach(function(id){
-    if(!Net.remote[id].alive) return;
-    meshes.push(Net.remote[id].mesh);
-    map.push(id);
-  });
-  var hits = raycaster.intersectObjects(meshes, true);
-  if(hits.length){
-    var obj = hits[0].object;
-    while(obj.parent && meshes.indexOf(obj)===-1) obj = obj.parent;
-    var idx = meshes.indexOf(obj);
-    if(idx>=0) return { id:map[idx], point:hits[0].point };
-  }
-  return null;
-}
+/* ---------------- INPUT ---------------- */
+var isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0, pointerLocked = false;
+function requestLock(){ if(!isTouch && canvas.requestPointerLock) canvas.requestPointerLock(); }
+function exitLock(){ if(document.exitPointerLock) document.exitPointerLock(); }
+document.addEventListener('pointerlockchange', function(){ pointerLocked = (document.pointerLockElement === canvas); });
 
-/* ===================================================================
-   INPUT
-   =================================================================== */
-var isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
-var pointerLocked = false;
-var LOOK_SENS_MOUSE = 0.0022;
-var LOOK_SENS_TOUCH = 0.0032;
-
-function requestLock(){
-  if(isTouch) return;
-  if(canvas.requestPointerLock) canvas.requestPointerLock();
-}
-function exitLock(){
-  if(document.exitPointerLock) document.exitPointerLock();
-}
-document.addEventListener('pointerlockchange', function(){
-  pointerLocked = (document.pointerLockElement === canvas);
-});
-
-/* desktop keyboard */
 var keys = {};
-window.addEventListener('keydown', function(e){
-  keys[e.code] = true;
-  if(e.code==='Escape'){ togglePause(); }
-  if(e.code==='Space'){ tryJump(); e.preventDefault(); }
-});
+window.addEventListener('keydown', function(e){ keys[e.code] = true; if(e.code==='Escape') togglePause(); if(e.code==='Space'){ tryJump(); e.preventDefault(); } });
 window.addEventListener('keyup', function(e){ keys[e.code]=false; });
 
-/* desktop mouse look + fire */
-canvas.addEventListener('click', function(){
-  if(!isTouch && isPlayingState(App.state)) requestLock();
-});
-window.addEventListener('mousemove', function(e){
-  if(!pointerLocked || isTouch) return;
-  lookDelta.x += e.movementX*LOOK_SENS_MOUSE;
-  lookDelta.y += e.movementY*LOOK_SENS_MOUSE;
-});
-window.addEventListener('mousedown', function(e){
-  if(e.button===0 && isPlayingState(App.state) && (pointerLocked || isTouch)) fireHeld = true;
-});
+canvas.addEventListener('click', function(){ if(!isTouch && isPlayingState(App.state)) requestLock(); });
+window.addEventListener('mousemove', function(e){ if(!pointerLocked || isTouch) return; lookDelta.x += e.movementX*0.0022; lookDelta.y += e.movementY*0.0022; });
+window.addEventListener('mousedown', function(e){ if(e.button===0 && isPlayingState(App.state) && (pointerLocked || isTouch)) fireHeld = true; });
 window.addEventListener('mouseup', function(e){ if(e.button===0) fireHeld = false; });
 
-/* mobile joystick (move) */
-var moveTouchId = null, moveOrigin = {x:0,y:0}, moveVec = {x:0,y:0};
-var lookTouchId = null, lookLast = {x:0,y:0};
-
-var zoneMove = $('zoneMove'), zoneLook = $('zoneLook');
-var joyBase = $('joyBase'), joyNub = $('joyNub');
-
-function showJoy(x,y){ joyBase.style.left=(x-54)+'px'; joyBase.style.top=(y-54)+'px'; joyBase.style.display='block'; }
-function hideJoy(){ joyBase.style.display='none'; joyNub.style.transform='translate(-50%,-50%)'; }
-
-zoneMove.addEventListener('touchstart', function(e){
-  if(!isPlayingState(App.state)) return;
-  var t = e.changedTouches[0];
-  if(moveTouchId!==null) return;
-  moveTouchId = t.identifier;
-  moveOrigin.x = t.clientX; moveOrigin.y = t.clientY;
-  showJoy(t.clientX, t.clientY);
-  e.preventDefault();
-}, {passive:false});
-zoneMove.addEventListener('touchmove', function(e){
-  for(var i=0;i<e.changedTouches.length;i++){
-    var t = e.changedTouches[i];
-    if(t.identifier!==moveTouchId) continue;
-    var dx = t.clientX-moveOrigin.x, dy = t.clientY-moveOrigin.y;
-    var d = Math.hypot(dx,dy), max = 46;
-    if(d>max){ dx=dx/d*max; dy=dy/d*max; }
-    joyNub.style.transform = 'translate(calc(-50% + '+dx+'px), calc(-50% + '+dy+'px))';
-    moveVec.x = dx/max; moveVec.y = dy/max;
-  }
-  e.preventDefault();
-}, {passive:false});
-function endMoveTouch(e){
-  for(var i=0;i<e.changedTouches.length;i++){
-    if(e.changedTouches[i].identifier===moveTouchId){
-      moveTouchId=null; moveVec.x=0; moveVec.y=0; hideJoy();
-    }
-  }
-}
-zoneMove.addEventListener('touchend', endMoveTouch);
-zoneMove.addEventListener('touchcancel', endMoveTouch);
-
-zoneLook.addEventListener('touchstart', function(e){
-  if(!isPlayingState(App.state)) return;
-  var t = e.changedTouches[0];
-  if(lookTouchId!==null) return;
-  lookTouchId = t.identifier;
-  lookLast.x = t.clientX; lookLast.y = t.clientY;
-  e.preventDefault();
-}, {passive:false});
-zoneLook.addEventListener('touchmove', function(e){
-  for(var i=0;i<e.changedTouches.length;i++){
-    var t = e.changedTouches[i];
-    if(t.identifier!==lookTouchId) continue;
-    var dx = t.clientX-lookLast.x, dy = t.clientY-lookLast.y;
-    lookLast.x = t.clientX; lookLast.y = t.clientY;
-    lookDelta.x += dx*LOOK_SENS_TOUCH;
-    lookDelta.y += dy*LOOK_SENS_TOUCH;
-  }
-  e.preventDefault();
-}, {passive:false});
-function endLookTouch(e){
-  for(var i=0;i<e.changedTouches.length;i++){
-    if(e.changedTouches[i].identifier===lookTouchId) lookTouchId=null;
-  }
-}
-zoneLook.addEventListener('touchend', endLookTouch);
-zoneLook.addEventListener('touchcancel', endLookTouch);
-
-/* fire / jump buttons */
 var btnFire = $('btnFire'), btnJump = $('btnJump');
 function bindHold(el, onDown, onUp){
   el.addEventListener('touchstart', function(e){ e.preventDefault(); e.stopPropagation(); onDown(); }, {passive:false});
   el.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation(); onUp && onUp(); }, {passive:false});
-  el.addEventListener('touchcancel', function(e){ onUp && onUp(); });
-  el.addEventListener('mousedown', function(e){ e.stopPropagation(); onDown(); });
-  el.addEventListener('mouseup', function(e){ e.stopPropagation(); onUp && onUp(); });
+  el.addEventListener('mousedown', function(e){ e.stopPropagation(); onDown(); }); el.addEventListener('mouseup', function(e){ e.stopPropagation(); onUp && onUp(); });
 }
 bindHold(btnFire, function(){ fireHeld=true; btnFire.classList.add('firing'); }, function(){ fireHeld=false; btnFire.classList.remove('firing'); });
 bindHold(btnJump, function(){ tryJump(); });
-
-function tryJump(){
-  if(!isPlayingState(App.state)) return;
-  if(player.grounded && player.alive){
-    player.vy = 4.6;
-    player.grounded = false;
-  }
-}
+function tryJump(){ if(isPlayingState(App.state) && player.grounded && player.alive){ player.vy = 4.6; player.grounded = false; } }
 function isPlayingState(s){ return s===STATE.SP_PLAY || s===STATE.MP_PLAY; }
 
-/* ---------------- shooting ---------------- */
+/* ---------------- SHOOTING ---------------- */
 var raycaster = new THREE.Raycaster();
 function tryFire(now){
-  if(!fireHeld) return;
-  if(!player.alive) return;
-  if(now-lastShot < FIRE_RATE) return;
-  lastShot = now;
-  weaponBob.recoil = 1;
-  muzzleFlash.material.opacity = 1;
-  muzzleLight.intensity = 3.2;
-  addShake(0.01);
-
-  var dir = new THREE.Vector3();
-  camera.getWorldDirection(dir);
-  var origin = camera.getWorldPosition(new THREE.Vector3());
-  raycaster.set(origin, dir);
-  raycaster.far = 60;
-
-  var farPoint = origin.clone().addScaledVector(dir, 60);
+  if(!fireHeld || !player.alive || now-lastShot < FIRE_RATE) return;
+  lastShot = now; weaponBob.recoil = 1; muzzleFlash.material.opacity = 1; muzzleLight.intensity = 3.2; addShake(0.01);
+  var dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+  var origin = camera.getWorldPosition(new THREE.Vector3()), farPoint = origin.clone().addScaledVector(dir, 60);
+  raycaster.set(origin, dir); raycaster.far = 60;
 
   if(App.mode==='sp'){
     var meshes=[], map=[];
     SP.enemies.forEach(function(b){ if(b.alive){ meshes.push(b.mesh); map.push(b); } });
-    var hits = raycaster.intersectObjects(meshes, true);
-    var obstacleHits = raycaster.intersectObjects(scene.children.filter(function(o){ return o.userData && o.userData.isObstacle; }), false);
-    var hitPoint = farPoint;
+    var hits = raycaster.intersectObjects(meshes, true), hitPoint = farPoint;
     if(hits.length){
       hitPoint = hits[0].point;
-      var obj = hits[0].object;
-      while(obj.parent && map.indexOf(obj.userData && obj.userData.bot)===-1 && meshes.indexOf(obj)===-1) obj = obj.parent;
-      var idx = meshes.indexOf(obj);
-      var bot = idx>=0 ? map[idx] : null;
-      if(bot){
-        bot.hp -= FIRE_DAMAGE;
-        burst(hits[0].point, 0x3df2ff, 10, 2.2);
-        if(bot.hp<=0) killBot(bot);
-      }
+      var obj = hits[0].object; while(obj.parent && meshes.indexOf(obj)===-1) obj = obj.parent;
+      var bot = map[meshes.indexOf(obj)];
+      if(bot){ bot.hp -= FIRE_DAMAGE; burst(hits[0].point, 0x3df2ff, 10, 2.2); if(bot.hp<=0) killBot(bot); }
     }
     spawnTracer(weaponGroup.getWorldPosition(new THREE.Vector3()), hitPoint);
   } else if(App.mode==='mp'){
-    var res = raycastRemotePlayers(raycaster);
-    var hitPoint = farPoint;
-    if(res){
-      hitPoint = res.point;
-      burst(res.point, 0x3df2ff, 10, 2.2);
-      netSend({ type:'hit', from:Net.myId, target:res.id, dmg:FIRE_DAMAGE });
-      var r = Net.remote[res.id];
-      if(r){ r.hp -= FIRE_DAMAGE; if(r.hp<=0){ Net.kills++; $('scoreNum').textContent=Net.kills; } }
+    var meshes=[], map=[];
+    Object.keys(Net.remote).forEach(function(id){ if(Net.remote[id].alive){ meshes.push(Net.remote[id].mesh); map.push(id); } });
+    var hits = raycaster.intersectObjects(meshes, true), hitPoint = farPoint;
+    if(hits.length){
+      hitPoint = hits[0].point; burst(hitPoint, 0x3df2ff, 10, 2.2);
+      var obj = hits[0].object; while(obj.parent && meshes.indexOf(obj)===-1) obj = obj.parent;
+      var targetId = map[meshes.indexOf(obj)];
+      netSend({ type:'hit', from:Net.myId, target:targetId, dmg:FIRE_DAMAGE });
+      if(Net.remote[targetId]){ Net.remote[targetId].hp -= FIRE_DAMAGE; if(Net.remote[targetId].hp<=0) $('scoreNum').textContent = ++Net.kills; }
     }
-    var wp = weaponGroup.getWorldPosition(new THREE.Vector3());
-    spawnTracer(wp, hitPoint);
+    var wp = weaponGroup.getWorldPosition(new THREE.Vector3()); spawnTracer(wp, hitPoint);
     netSend({ type:'shot', from:Net.myId, fx:wp.x, fy:wp.y, fz:wp.z, tx:hitPoint.x, ty:hitPoint.y, tz:hitPoint.z });
   }
 }
 
-/* ---------------- movement integration ---------------- */
+/* ---------------- LOOP ---------------- */
 function updatePlayerMovement(dt){
   if(!player.alive) return;
-  // combine desktop keys + mobile joystick
   var ix=0, iz=0;
-  if(!isTouch){
-    if(keys['KeyW']||keys['ArrowUp']) iz -= 1;
-    if(keys['KeyS']||keys['ArrowDown']) iz += 1;
-    if(keys['KeyA']||keys['ArrowLeft']) ix -= 1;
-    if(keys['KeyD']||keys['ArrowRight']) ix += 1;
-  } else {
-    ix = moveVec.x; iz = moveVec.y;
-  }
-  var len = Math.hypot(ix,iz);
-  if(len>1){ ix/=len; iz/=len; }
+  if(keys['KeyW']||keys['ArrowUp']) iz -= 1; if(keys['KeyS']||keys['ArrowDown']) iz += 1;
+  if(keys['KeyA']||keys['ArrowLeft']) ix -= 1; if(keys['KeyD']||keys['ArrowRight']) ix += 1;
+  var len = Math.hypot(ix,iz); if(len>1){ ix/=len; iz/=len; }
 
-  // apply look deltas
-  player.yaw -= lookDelta.x;
-  player.pitch -= lookDelta.y;
-  player.pitch = clamp(player.pitch, -1.3, 1.3);
-  lookDelta.x = 0; lookDelta.y = 0;
-
+  player.yaw -= lookDelta.x; player.pitch = clamp(player.pitch - lookDelta.y, -1.3, 1.3); lookDelta.x = 0; lookDelta.y = 0;
   var sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
-  var fx = -sy, fz = -cy;
-  var rx = cy, rz = -sy;
-  var mx = fx*(-iz) + rx*ix;
-  var mz = fz*(-iz) + rz*ix;
-
+  var mx = (-sy)*(-iz) + (cy)*ix, mz = (-cy)*(-iz) + (-sy)*ix;
+  
   var mlen = Math.hypot(mx,mz);
   if(mlen>0.001){
-    var nx = player.x + (mx/mlen)*player.speed*dt*len;
-    var nz = player.z + (mz/mlen)*player.speed*dt*len;
-    var c = collideCircle(nx,nz,player.radius);
-    player.x = c[0]; player.z = c[1];
-    weaponBob.t += dt*9;
+    var nx = player.x + (mx/mlen)*player.speed*dt*len, nz = player.z + (mz/mlen)*player.speed*dt*len;
+    var c = collideCircle(nx,nz,player.radius); player.x = c[0]; player.z = c[1]; weaponBob.t += dt*9;
   }
-
-  // gravity / jump
-  player.vy -= 14*dt;
-  player.y += player.vy*dt;
+  player.vy -= 14*dt; player.y += player.vy*dt;
   if(player.y<=0){ player.y=0; player.vy=0; player.grounded=true; }
 }
 
-/* ---------------- UI state machine ---------------- */
 function setState(s){
   App.state = s;
   document.querySelectorAll('.screen').forEach(function(el){ el.classList.remove('active'); });
   $('hud').classList.toggle('active', isPlayingState(s));
-  $('mobileControls').classList.toggle('on', isTouch && isPlayingState(s));
   $('desktopHint').style.display = (!isTouch && isPlayingState(s)) ? 'block' : 'none';
   $('pauseOverlay').classList.toggle('active', s===STATE.PAUSED);
   $('gameoverOverlay').classList.toggle('active', s===STATE.GAMEOVER);
@@ -1428,120 +1058,43 @@ function setState(s){
   if(s===STATE.HOW) $('screen-how').classList.add('active');
   if(s===STATE.MP_LOBBY) $('screen-mp').classList.add('active');
 }
-
 function togglePause(){
-  if(App.state===STATE.SP_PLAY || App.state===STATE.MP_PLAY){
-    App.prevPlayState = App.state;
-    setState(STATE.PAUSED);
-    exitLock();
-  } else if(App.state===STATE.PAUSED){
-    setState(App.prevPlayState);
-    requestLock();
-  }
+  if(isPlayingState(App.state)){ App.prevPlayState = App.state; setState(STATE.PAUSED); exitLock(); }
+  else if(App.state===STATE.PAUSED){ setState(App.prevPlayState); requestLock(); }
 }
 
-/* ---------------- wire up menu buttons ---------------- */
-$('btnSingle').addEventListener('click', function(){ startSinglePlayer(); });
+$('btnSingle').addEventListener('click', startSinglePlayer);
 $('btnMulti').addEventListener('click', function(){ setState(STATE.MP_LOBBY); });
 $('btnHow').addEventListener('click', function(){ setState(STATE.HOW); });
 $('btnHowBack').addEventListener('click', function(){ setState(STATE.MENU); });
 $('btnMpBack').addEventListener('click', function(){ teardownNet(); setState(STATE.MENU); });
+$('tabHost').addEventListener('click', function(){ $('tabHost').classList.add('on'); $('tabJoin').classList.remove('on'); $('paneHost').style.display='block'; $('paneJoin').style.display='none'; });
+$('tabJoin').addEventListener('click', function(){ $('tabJoin').classList.add('on'); $('tabHost').classList.remove('on'); $('paneJoin').style.display='block'; $('paneHost').style.display='none'; });
+$('btnCreateRoom').addEventListener('click', createRoom); $('btnJoinRoom').addEventListener('click', joinRoom);
+$('btnStartMatch').addEventListener('click', beginMultiplayerMatch);
+$('pauseBtn').addEventListener('click', togglePause); $('btnResume').addEventListener('click', togglePause);
+$('btnQuitToMenu').addEventListener('click', function(){ clearWorldEntities(); teardownNet(); exitLock(); setState(STATE.MENU); });
 
-$('nameHost').value = Net.myName = Store.get('shootermemo_name','PLAYER');
-$('nameJoin').value = Store.get('shootermemo_name','PLAYER');
-
-$('tabHost').addEventListener('click', function(){
-  $('tabHost').classList.add('on'); $('tabJoin').classList.remove('on');
-  $('paneHost').style.display='block'; $('paneJoin').style.display='none';
-});
-$('tabJoin').addEventListener('click', function(){
-  $('tabJoin').classList.add('on'); $('tabHost').classList.remove('on');
-  $('paneJoin').style.display='block'; $('paneHost').style.display='none';
-});
-$('btnCreateRoom').addEventListener('click', function(){ createRoom(); });
-$('btnJoinRoom').addEventListener('click', function(){ joinRoom(); });
-$('btnStartMatch').addEventListener('click', function(){ beginMultiplayerMatch(); });
-
-$('pauseBtn').addEventListener('click', togglePause);
-$('btnResume').addEventListener('click', togglePause);
-$('btnRestart').addEventListener('click', function(){
-  if(App.mode==='sp') startSinglePlayer();
-  else beginMultiplayerMatch();
-});
-$('btnQuitToMenu').addEventListener('click', function(){
-  quitToMenu();
-});
-$('btnPlayAgain').addEventListener('click', function(){
-  if(App.mode==='sp') startSinglePlayer();
-  else if(Net.peer && !Net.peer.destroyed) beginMultiplayerMatch();
-  else setState(STATE.MP_LOBBY);
-});
-$('btnGoMenu').addEventListener('click', function(){ quitToMenu(); });
-
-function quitToMenu(){
-  clearWorldEntities();
-  teardownNet();
-  exitLock();
-  setState(STATE.MENU);
-}
-
-/* ---------------- main loop ---------------- */
 function tick(){
   requestAnimationFrame(tick);
-  var dt = Math.min(clock.getDelta(), 0.05);
-  var now = performance.now()/1000;
-
+  var dt = Math.min(clock.getDelta(), 0.05), now = performance.now()/1000;
   if(isPlayingState(App.state)){
-    updatePlayerMovement(dt);
-    tryFire(now);
+    updatePlayerMovement(dt); tryFire(now);
     if(App.mode==='sp' && SP.active) updateBots(dt);
     if(App.mode==='mp' && Net.active) updateMultiplayer(dt);
+    PowerUpSystem.update(dt);
     applyCamera();
   }
-
-  // weapon bob & recoil
   weaponBob.recoil = lerp(weaponBob.recoil, 0, Math.min(1, dt*10));
-  weaponGroup.position.z = -0.3 + weaponBob.recoil*0.06;
-  weaponGroup.rotation.x = -weaponBob.recoil*0.12;
-  if(isPlayingState(App.state) && player.alive && (Math.hypot(moveVec.x,moveVec.y)>0.1 || keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'])){
-    weaponGroup.position.x = 0.16 + Math.sin(weaponBob.t)*0.012;
-    weaponGroup.position.y = -0.16 + Math.abs(Math.cos(weaponBob.t))*0.012;
-  } else {
-    weaponGroup.position.x = lerp(weaponGroup.position.x, 0.16, dt*6);
-    weaponGroup.position.y = lerp(weaponGroup.position.y, -0.16, dt*6);
-  }
+  weaponGroup.position.z = -0.3 + weaponBob.recoil*0.06; weaponGroup.rotation.x = -weaponBob.recoil*0.12;
   muzzleFlash.material.opacity = lerp(muzzleFlash.material.opacity, 0, dt*18);
   muzzleLight.intensity = lerp(muzzleLight.intensity, 0, dt*14);
-
-  updateParticles(dt);
-  updateTracers(dt);
-
-  shake.mag = lerp(shake.mag, 0, dt*10);
-  if(shake.mag<0.0003) shake.mag=0;
-
-  if(dmgVFXTimer>0){
-    dmgVFXTimer -= dt;
-    $('dmgVignette').style.opacity = Math.max(0, dmgVFXTimer/0.3*0.85);
-  }
-
+  updateParticles(dt); updateTracers(dt); shake.mag = lerp(shake.mag, 0, dt*10);
+  if(dmgVFXTimer>0){ dmgVFXTimer -= dt; $('dmgVignette').style.opacity = Math.max(0, dmgVFXTimer/0.3*0.85); }
   renderer.render(scene, camera);
 }
 
-/* ---------------- boot ---------------- */
-function boot(){
-  resize();
-  setState(STATE.MENU);
-  $('loadingScreen').style.display = 'none';
-  requestAnimationFrame(tick);
-}
-if(typeof THREE === 'undefined'){
-  $('loadingScreen').querySelector('p').textContent = 'FAILED TO LOAD 3D ENGINE — CHECK CONNECTION';
-} else {
-  boot();
-}
-
-window.addEventListener('beforeunload', function(){ teardownNet(); });
-
+resize(); setState(STATE.MENU); $('loadingScreen').style.display = 'none'; requestAnimationFrame(tick);
 })();
 </script>
 </body>
