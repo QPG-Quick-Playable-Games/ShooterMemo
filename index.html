@@ -185,20 +185,21 @@
   }
 
   /* mobile controls */
-  #mobileControls{position:absolute; inset:0; pointer-events:none; display:none;}
+  #mobileControls{position:absolute; inset:0; pointer-events:none; display:none; z-index: 6;}
   #mobileControls.on{display:block;}
   .zone{position:absolute; inset:0; pointer-events:auto;}
-  .zone.look{left:38%;}
+  .zone.move{right:50%;}
+  .zone.look{left:50%;}
   .joy-base{
     position:absolute; width:108px; height:108px; border-radius:50%; border:1.5px solid rgba(61,242,255,.45);
-    background:rgba(9,16,30,.35); pointer-events:none; display:none; backdrop-filter:blur(1px);
+    background:rgba(9,16,30,.35); pointer-events:none; display:none; backdrop-filter:blur(1px); transform:translate(-50%,-50%);
   }
   .joy-nub{
     position:absolute; width:46px; height:46px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #64f6ff, #0d8fa3);
     box-shadow:0 0 16px rgba(61,242,255,.8); left:50%; top:50%; transform:translate(-50%,-50%); pointer-events:none;
   }
   .action-btns{
-    position:absolute; right:calc(18px + var(--safe-right)); bottom:calc(22px + var(--safe-bottom)); display:flex; flex-direction:column; align-items:center; gap:14px; pointer-events:auto;
+    position:absolute; right:calc(18px + var(--safe-right)); bottom:calc(22px + var(--safe-bottom)); display:flex; flex-direction:column; align-items:center; gap:14px; pointer-events:auto; z-index: 7;
   }
   .abtn{
     width:78px; height:78px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-direction:column;
@@ -424,11 +425,11 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.8; // Increased exposure for overall screen brightness
+renderer.toneMappingExposure = 1.8;
 
 var scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a1220); // Brightened background color
-scene.fog = new THREE.FogExp2(0x0a1220, 0.008); // Reduced fog density so players don't get lost
+scene.background = new THREE.Color(0x0a1220);
+scene.fog = new THREE.FogExp2(0x0a1220, 0.008);
 
 var camera = new THREE.PerspectiveCamera(72, 1, 0.1, 300);
 var PLAYER_HEIGHT = 1.7;
@@ -443,9 +444,9 @@ function resize(){
 window.addEventListener('resize', resize);
 
 /* lights */
-var hemi = new THREE.HemisphereLight(0x6ba4e8, 0x1a2436, 1.2); // Boosted ambient light intensity
+var hemi = new THREE.HemisphereLight(0x6ba4e8, 0x1a2436, 1.2);
 scene.add(hemi);
-var sun = new THREE.DirectionalLight(0xc2e7ff, 1.5); // Boosted key sunlight
+var sun = new THREE.DirectionalLight(0xc2e7ff, 1.5);
 sun.position.set(18, 26, -10);
 sun.castShadow = true;
 scene.add(sun);
@@ -460,7 +461,7 @@ scene.add(rim2);
 (function(){
   var n = 700, pos = new Float32Array(n*3);
   for(var i=0;i<n;i++){
-    var r = rand(60,140), th = rand(0,Math.PI*2), ph = rand(0.05,0.5);
+    var r = rand(60,140), th = rand(0,Math.PI*2);
     pos[i*3] = Math.cos(th)*r;
     pos[i*3+1] = rand(20,70);
     pos[i*3+2] = Math.sin(th)*r;
@@ -477,7 +478,7 @@ var obstacles = [];
 
 function buildArena(){
   var floorGeo = new THREE.PlaneGeometry(ARENA_HALF*2, ARENA_HALF*2, 1, 1);
-  var floorMat = new THREE.MeshStandardMaterial({ color:0x2a354a, roughness:0.7, metalness:0.15 }); // Lighter floor surface
+  var floorMat = new THREE.MeshStandardMaterial({ color:0x2a354a, roughness:0.7, metalness:0.15 });
   var floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI/2;
   floor.receiveShadow = true;
@@ -486,10 +487,10 @@ function buildArena(){
   var grid = new THREE.GridHelper(ARENA_HALF*2, 56, 0x3df2ff, 0x1e4968);
   grid.position.y = 0.01;
   grid.material.transparent = true;
-  grid.material.opacity = 0.65; // High-contrast floor grid for navigation
+  grid.material.opacity = 0.65;
   scene.add(grid);
 
-  var wallMat = new THREE.MeshStandardMaterial({ color:0x16294a, roughness:0.6, metalness:0.3, emissive:0x123f57, emissiveIntensity:0.6 }); // Clearly visible arena bounds
+  var wallMat = new THREE.MeshStandardMaterial({ color:0x16294a, roughness:0.6, metalness:0.3, emissive:0x123f57, emissiveIntensity:0.6 });
   var wallH = 5, wallT = 1;
   var wallDefs = [
     [0, -ARENA_HALF-wallT/2, ARENA_HALF*2+wallT*2, wallT],
@@ -504,7 +505,7 @@ function buildArena(){
     scene.add(mesh);
   });
 
-  var pillarMat = new THREE.MeshStandardMaterial({ color:0x1c2e4a, roughness:0.55, metalness:0.4, emissive:0x224270, emissiveIntensity:0.45 }); // Brighter cover pillars
+  var pillarMat = new THREE.MeshStandardMaterial({ color:0x1c2e4a, roughness:0.55, metalness:0.4, emissive:0x224270, emissiveIntensity:0.45 });
   var coords = [];
   var tries=0;
   while(coords.length < 10 && tries < 200){
@@ -608,7 +609,6 @@ PowerUpSystem.init();
 var weaponGroup = new THREE.Group();
 (function(){
   var bodyMat = new THREE.MeshStandardMaterial({ color:0x1a2436, roughness:0.35, metalness:0.75, emissive:0x0e3a44, emissiveIntensity:0.3 });
-  var accentMat = new THREE.MeshStandardMaterial({ color:0x3df2ff, roughness:0.2, metalness:0.4, emissive:0x3df2ff, emissiveIntensity:0.9 });
   var body = new THREE.Mesh(new THREE.BoxGeometry(0.09,0.09,0.42), bodyMat);
   body.position.set(0,0,-0.1);
   weaponGroup.add(body);
@@ -650,9 +650,9 @@ function burst(pos, color, count, speed){
     if(p.active) continue;
     p.active = true; p.mesh.visible = true; p.mesh.position.copy(pos);
     p.mesh.scale.setScalar(rand(0.6,1.3)); p.mesh.material.color.set(color); p.mesh.material.opacity = 1;
-    var a = rand(0,Math.PI*2), el = rand(0.2,1);
+    var a = rand(0,Math.PI*2);
     var s = speed*rand(0.5,1);
-    p.vel.set(Math.cos(a)*s*el, rand(0.5,1)*s, Math.sin(a)*s*el);
+    p.vel.set(Math.cos(a)*s, rand(0.5,1)*s, Math.sin(a)*s);
     p.life = 0; p.maxLife = rand(0.35,0.7);
     made++;
   }
@@ -705,7 +705,7 @@ function respawnPlayer(){
 }
 
 function applyCamera(){
-  camera.position.set(player.x, PLAYER_HEIGHT + player.y + Math.sin(weaponBob.t*2)*0.0, player.z);
+  camera.position.set(player.x, PLAYER_HEIGHT + player.y, player.z);
   camera.rotation.order = 'YXZ';
   camera.rotation.y = player.yaw;
   camera.rotation.x = player.pitch;
@@ -730,7 +730,7 @@ var SP = { wave:1, score:0, kills:0, enemies:[], active:false, waveEnemiesLeft:0
 function spawnBot(diffMul){
   var a = rand(0,Math.PI*2), r = rand(16, ARENA_HALF-3);
   var g = new THREE.Group();
-  var mat = new THREE.MeshStandardMaterial({ color:0x5a2045, emissive:0xff3d9a, emissiveIntensity:0.6 }); // Increased bot emissive glow
+  var mat = new THREE.MeshStandardMaterial({ color:0x5a2045, emissive:0xff3d9a, emissiveIntensity:0.6 });
   g.add(new THREE.Mesh(new THREE.CapsuleGeometry(0.35,0.7,4,8), mat).translateY(1.0));
   var bot = { mesh: g, x: Math.cos(a)*r, z: Math.sin(a)*r, hp: 60 + SP.wave*8, speed: rand(1.6,2.3)*diffMul, fireTimer: rand(0.5,1.5), fireRate: Math.max(0.9, 2.6 - SP.wave*0.08), dmg: 4 + Math.floor(SP.wave*0.6), strafeDir: choice([-1,1]), strafeTimer: rand(1,3), alive: true };
   bot.mesh.position.set(bot.x, 0, bot.z);
@@ -958,7 +958,7 @@ function damagePlayerMP(amount, fromId){
     player.alive = false; var killerName = Net.remote[fromId] ? Net.remote[fromId].name : 'ENEMY';
     netSend({ type:'kill', from:Net.myId, killer:fromId, killerName:killerName, victim:Net.myId, victimName:Net.myName });
     Net.deaths++; pushKillFeed(killerName + ' ELIMINATED ' + Net.myName);
-    $('deathNum') && ($('deathNum').textContent = Net.deaths);
+    if($('deathNum')) $('deathNum').textContent = Net.deaths;
     setTimeout(function(){ if(App.state===STATE.MP_PLAY) respawnPlayer(); }, 1600);
   }
 }
@@ -968,7 +968,7 @@ function teardownNet(){
   Net.peer=null; Net.isHost=false; Net.conns={}; Net.clearRemotePlayers();
 }
 
-/* ---------------- INPUT ---------------- */
+/* ---------------- INPUT & MOBILE CONTROLS ---------------- */
 var isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0, pointerLocked = false;
 function requestLock(){ if(!isTouch && canvas.requestPointerLock) canvas.requestPointerLock(); }
 function exitLock(){ if(document.exitPointerLock) document.exitPointerLock(); }
@@ -983,11 +983,98 @@ window.addEventListener('mousemove', function(e){ if(!pointerLocked || isTouch) 
 window.addEventListener('mousedown', function(e){ if(e.button===0 && isPlayingState(App.state) && (pointerLocked || isTouch)) fireHeld = true; });
 window.addEventListener('mouseup', function(e){ if(e.button===0) fireHeld = false; });
 
+/* Touch Controller Implementation */
+var moveTouchId = null, lookTouchId = null;
+var joyStart = { x:0, y:0 };
+var joyBase = $('joyBase'), joyNub = $('joyNub');
+var zoneMove = $('zoneMove'), zoneLook = $('zoneLook');
+var lastLookPos = { x:0, y:0 };
+
+zoneMove.addEventListener('touchstart', function(e){
+  e.preventDefault();
+  if(moveTouchId !== null) return;
+  var touch = e.changedTouches[0];
+  moveTouchId = touch.identifier;
+  joyStart.x = touch.clientX; joyStart.y = touch.clientY;
+  joyBase.style.left = joyStart.x + 'px';
+  joyBase.style.top = joyStart.y + 'px';
+  joyBase.style.display = 'block';
+  joyNub.style.transform = 'translate(-50%, -50%)';
+}, {passive:false});
+
+zoneMove.addEventListener('touchmove', function(e){
+  e.preventDefault();
+  for(var i=0; i<e.changedTouches.length; i++){
+    var touch = e.changedTouches[i];
+    if(touch.identifier === moveTouchId){
+      var dx = touch.clientX - joyStart.x;
+      var dy = touch.clientY - joyStart.y;
+      var dist = Math.hypot(dx, dy);
+      var maxR = 45;
+      var angle = Math.atan2(dy, dx);
+      var r = Math.min(dist, maxR);
+      var nx = Math.cos(angle) * r;
+      var ny = Math.sin(angle) * r;
+      joyNub.style.transform = 'translate(calc(-50% + ' + nx + 'px), calc(-50% + ' + ny + 'px))';
+      moveInput.x = nx / maxR;
+      moveInput.z = ny / maxR;
+    }
+  }
+}, {passive:false});
+
+function resetMoveTouch(){
+  moveTouchId = null;
+  moveInput.x = 0; moveInput.z = 0;
+  joyBase.style.display = 'none';
+}
+
+zoneMove.addEventListener('touchend', function(e){
+  e.preventDefault();
+  for(var i=0; i<e.changedTouches.length; i++){
+    if(e.changedTouches[i].identifier === moveTouchId) resetMoveTouch();
+  }
+}, {passive:false});
+zoneMove.addEventListener('touchcancel', resetMoveTouch);
+
+zoneLook.addEventListener('touchstart', function(e){
+  e.preventDefault();
+  if(lookTouchId !== null) return;
+  var touch = e.changedTouches[0];
+  lookTouchId = touch.identifier;
+  lastLookPos.x = touch.clientX;
+  lastLookPos.y = touch.clientY;
+}, {passive:false});
+
+zoneLook.addEventListener('touchmove', function(e){
+  e.preventDefault();
+  for(var i=0; i<e.changedTouches.length; i++){
+    var touch = e.changedTouches[i];
+    if(touch.identifier === lookTouchId){
+      var dx = touch.clientX - lastLookPos.x;
+      var dy = touch.clientY - lastLookPos.y;
+      lookDelta.x += dx * 0.005;
+      lookDelta.y += dy * 0.005;
+      lastLookPos.x = touch.clientX;
+      lastLookPos.y = touch.clientY;
+    }
+  }
+}, {passive:false});
+
+function resetLookTouch(){ lookTouchId = null; }
+zoneLook.addEventListener('touchend', function(e){
+  e.preventDefault();
+  for(var i=0; i<e.changedTouches.length; i++){
+    if(e.changedTouches[i].identifier === lookTouchId) resetLookTouch();
+  }
+}, {passive:false});
+zoneLook.addEventListener('touchcancel', resetLookTouch);
+
 var btnFire = $('btnFire'), btnJump = $('btnJump');
 function bindHold(el, onDown, onUp){
   el.addEventListener('touchstart', function(e){ e.preventDefault(); e.stopPropagation(); onDown(); }, {passive:false});
   el.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation(); onUp && onUp(); }, {passive:false});
-  el.addEventListener('mousedown', function(e){ e.stopPropagation(); onDown(); }); el.addEventListener('mouseup', function(e){ e.stopPropagation(); onUp && onUp(); });
+  el.addEventListener('mousedown', function(e){ e.stopPropagation(); onDown(); });
+  el.addEventListener('mouseup', function(e){ e.stopPropagation(); onUp && onUp(); });
 }
 bindHold(btnFire, function(){ fireHeld=true; btnFire.classList.add('firing'); }, function(){ fireHeld=false; btnFire.classList.remove('firing'); });
 bindHold(btnJump, function(){ tryJump(); });
@@ -1033,9 +1120,13 @@ function tryFire(now){
 /* ---------------- LOOP ---------------- */
 function updatePlayerMovement(dt){
   if(!player.alive) return;
-  var ix=0, iz=0;
-  if(keys['KeyW']||keys['ArrowUp']) iz -= 1; if(keys['KeyS']||keys['ArrowDown']) iz += 1;
-  if(keys['KeyA']||keys['ArrowLeft']) ix -= 1; if(keys['KeyD']||keys['ArrowRight']) ix += 1;
+  var ix = moveInput.x, iz = moveInput.z;
+  
+  if(keys['KeyW']||keys['ArrowUp']) iz -= 1;
+  if(keys['KeyS']||keys['ArrowDown']) iz += 1;
+  if(keys['KeyA']||keys['ArrowLeft']) ix -= 1;
+  if(keys['KeyD']||keys['ArrowRight']) ix += 1;
+  
   var len = Math.hypot(ix,iz); if(len>1){ ix/=len; iz/=len; }
 
   player.yaw -= lookDelta.x; player.pitch = clamp(player.pitch - lookDelta.y, -1.3, 1.3); lookDelta.x = 0; lookDelta.y = 0;
@@ -1055,6 +1146,7 @@ function setState(s){
   App.state = s;
   document.querySelectorAll('.screen').forEach(function(el){ el.classList.remove('active'); });
   $('hud').classList.toggle('active', isPlayingState(s));
+  $('mobileControls').classList.toggle('on', isTouch && isPlayingState(s));
   $('desktopHint').style.display = (!isTouch && isPlayingState(s)) ? 'block' : 'none';
   $('pauseOverlay').classList.toggle('active', s===STATE.PAUSED);
   $('gameoverOverlay').classList.toggle('active', s===STATE.GAMEOVER);
@@ -1077,6 +1169,9 @@ $('tabJoin').addEventListener('click', function(){ $('tabJoin').classList.add('o
 $('btnCreateRoom').addEventListener('click', createRoom); $('btnJoinRoom').addEventListener('click', joinRoom);
 $('btnStartMatch').addEventListener('click', beginMultiplayerMatch);
 $('pauseBtn').addEventListener('click', togglePause); $('btnResume').addEventListener('click', togglePause);
+$('btnRestart').addEventListener('click', function(){ if(App.mode==='sp') startSinglePlayer(); });
+$('btnPlayAgain').addEventListener('click', function(){ if(App.mode==='sp') startSinglePlayer(); else beginMultiplayerMatch(); });
+$('btnGoMenu').addEventListener('click', function(){ clearWorldEntities(); teardownNet(); exitLock(); setState(STATE.MENU); });
 $('btnQuitToMenu').addEventListener('click', function(){ clearWorldEntities(); teardownNet(); exitLock(); setState(STATE.MENU); });
 
 function tick(){
