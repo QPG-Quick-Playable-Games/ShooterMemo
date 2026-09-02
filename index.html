@@ -663,7 +663,6 @@ function populateMapGrids(){
     });
   });
 }
-populateMapGrids();
 
 /* THREE Setup */
 var canvas = $('gl');
@@ -817,8 +816,6 @@ function collideCircle(x,z,radius){
   }
   return [x,z];
 }
-
-buildArena('city');
 
 /* FULLY REFINED 3D WEAPON GENERATOR (DISTINCT GUN COLOURS & STYLES) */
 function createDetailedWeaponMesh(gunKey){
@@ -1011,7 +1008,6 @@ var PowerUpSystem = {
     }
   }
 };
-PowerUpSystem.init();
 
 /* FIRST-PERSON WEAPON VIEW-MODEL */
 var weaponGroup = new THREE.Group();
@@ -1033,7 +1029,6 @@ function rebuildFPSWeapon(gunKey){
   weaponGroup.add(muzzleFlash);
 }
 
-rebuildFPSWeapon(getActiveGunKey());
 weaponGroup.position.set(0.16,-0.16,-0.3);
 camera.add(weaponGroup);
 scene.add(camera);
@@ -1777,6 +1772,10 @@ function tick(){
   if(dmgVFXTimer>0){ dmgVFXTimer -= dt; $('dmgVignette').style.opacity = Math.max(0, dmgVFXTimer/0.3*0.85); }
   renderer.render(scene, camera);
 }
+
+populateMapGrids();
+PowerUpSystem.init();
+rebuildFPSWeapon(getActiveGunKey());
 
 resize(); setState(STATE.MENU); $('loadingScreen').style.display = 'none'; requestAnimationFrame(tick);
 })();
