@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>SHOOTER MEMO // 3D Shooter</title>
+<title>SHOOTER MEMO // Extended Tactical Arena</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -45,7 +45,7 @@
     background:
       radial-gradient(1200px 700px at 50% -10%, #12203f 0%, transparent 60%),
       linear-gradient(180deg, var(--bg-1), var(--bg-0));
-    z-index:10; text-align:center;
+    z-index:10; text-align:center; overflow-y:auto;
   }
   .screen.active{display:flex;}
   .grid-veil{
@@ -65,12 +65,12 @@
   .logo span{color:var(--magenta); text-shadow:0 0 6px var(--magenta), 0 0 26px rgba(255,61,154,.55);}
   .tagline{color:var(--text-dim); font-size:.8rem; letter-spacing:.28em; margin-top:6px; text-transform:uppercase;}
 
-  .menu-stack{width:100%; max-width:380px; margin-top:30px; display:flex; flex-direction:column; gap:12px; position:relative; z-index:1;}
+  .menu-stack{width:100%; max-width:380px; margin-top:20px; display:flex; flex-direction:column; gap:10px; position:relative; z-index:1;}
 
   .btn{
     appearance:none; border:1px solid var(--line); background:linear-gradient(180deg,#101b30,#0a1424);
     color:var(--text); font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:1rem; letter-spacing:.05em;
-    padding:15px 18px; border-radius:10px; cursor:pointer; text-transform:uppercase;
+    padding:13px 18px; border-radius:10px; cursor:pointer; text-transform:uppercase;
     display:flex; align-items:center; justify-content:space-between; gap:10px;
     transition: transform .08s ease, border-color .15s ease, box-shadow .15s ease;
   }
@@ -83,101 +83,111 @@
   .btn-wide{width:100%;}
 
   .best-chip{
-    margin-top:20px; font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--text-dim);
-    border:1px solid var(--line); padding:8px 14px; border-radius:100px; letter-spacing:.08em;
+    margin-top:16px; font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--text-dim);
+    border:1px solid var(--line); padding:6px 14px; border-radius:100px; letter-spacing:.08em;
   }
   .best-chip b{color:var(--amber);}
 
-  /* MAP SELECT UI */
+  /* MAP SELECT GRID (10 MAPS) */
   .map-grid{
-    display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:16px; width:100%;
+    display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; margin-bottom:12px; width:100%; max-height:220px; overflow-y:auto; padding:4px;
   }
+  @media (max-width: 600px) { .map-grid { grid-template-columns: repeat(2, 1fr); } }
   .map-card{
-    border:1px solid var(--line); background:#060a14; border-radius:10px; padding:10px; cursor:pointer;
+    border:1px solid var(--line); background:#060a14; border-radius:8px; padding:8px; cursor:pointer;
     transition: border-color .15s ease, transform .1s ease, background .15s ease;
-    display:flex; flex-direction:column; align-items:center; gap:6px;
+    display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center;
   }
   .map-card:active{transform:scale(.95);}
   .map-card.selected{border-color:var(--cyan); background:#0f1d33; box-shadow:0 0 12px rgba(61,242,255,.25);}
-  .map-card .icon{width:24px; height:24px; border-radius:50%; background:var(--cyan-dim);}
-  .map-card[data-map="city"] .icon{background:var(--cyan);}
-  .map-card[data-map="desert"] .icon{background:var(--amber);}
-  .map-card[data-map="lava"] .icon{background:var(--red);}
-  .map-card span{font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:.78rem; color:var(--text);}
+  .map-card .icon{width:20px; height:20px; border-radius:50%; background:var(--cyan-dim);}
+  .map-card span{font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:.7rem; color:var(--text);}
 
-  /* SHOP UI */
+  /* SHOP UI (LOADOUT BUILDER) */
+  .shop-container{
+    display:flex; flex-direction:column; gap:10px; width:100%; max-height:360px; overflow-y:auto; margin-top:8px; padding-right:4px;
+  }
+  .slot-title{
+    font-family:'Chakra Petch',sans-serif; font-size:.8rem; color:var(--cyan); text-transform:uppercase; text-align:left; margin-top:6px; letter-spacing:.05em;
+  }
   .shop-grid{
-    display:flex; flex-direction:column; gap:10px; width:100%; margin-top:10px;
+    display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; width:100%;
   }
   .shop-card{
-    border:1px solid var(--line); background:#060a14; border-radius:10px; padding:12px; cursor:pointer;
-    display:flex; align-items:center; justify-content:space-between; transition: border-color .15s ease, background .15s ease;
+    border:1px solid var(--line); background:#060a14; border-radius:8px; padding:10px; cursor:pointer;
+    display:flex; flex-direction:column; justify-content:space-between; gap:6px; transition: border-color .15s ease, background .15s ease;
   }
-  .shop-card.selected{border-color:var(--cyan); background:#0f1d33; box-shadow:0 0 12px rgba(61,242,255,.25);}
+  .shop-card.selected{border-color:var(--cyan); background:#0f1d33; box-shadow:0 0 10px rgba(61,242,255,.25);}
   .shop-info{text-align:left;}
-  .shop-info b{display:block; font-size:.9rem; color:var(--text);}
-  .shop-info span{font-size:.74rem; color:var(--text-dim); font-family:'JetBrains Mono',monospace;}
+  .shop-info b{display:block; font-size:.8rem; color:var(--text);}
+  .shop-info span{font-size:.68rem; color:var(--text-dim); font-family:'JetBrains Mono',monospace; display:block;}
 
   .panel{
-    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px;
-    max-width:420px; width:100%; text-align:left; backdrop-filter:blur(6px);
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px;
+    max-width:520px; width:100%; text-align:left; backdrop-filter:blur(6px);
   }
   .panel h2{margin:0 0 4px; font-size:1.1rem; color:var(--cyan);}
-  .panel p.sub{margin:0 0 16px; color:var(--text-dim); font-size:.78rem;}
-  .ctrl-row{display:flex; gap:12px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--line);}
-  .ctrl-row:first-of-type{border-top:none;}
-  .ctrl-icon{
-    width:34px; height:34px; flex:0 0 34px; border-radius:8px; border:1px solid var(--cyan-dim);
-    display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:.7rem; color:var(--cyan);
-  }
-  .ctrl-txt b{display:block; font-size:.85rem; font-weight:600;}
-  .ctrl-txt span{display:block; font-size:.74rem; color:var(--text-dim); margin-top:1px;}
+  .panel p.sub{margin:0 0 12px; color:var(--text-dim); font-size:.78rem;}
 
-  .tabbar{display:flex; gap:6px; margin-bottom:14px;}
+  .tabbar{display:flex; gap:6px; margin-bottom:12px;}
   .tabbar button{
-    flex:1; padding:9px; border-radius:8px; border:1px solid var(--line); background:transparent; color:var(--text-dim);
-    font-family:'Chakra Petch',sans-serif; font-weight:600; letter-spacing:.05em; font-size:.8rem; cursor:pointer;
+    flex:1; padding:8px; border-radius:8px; border:1px solid var(--line); background:transparent; color:var(--text-dim);
+    font-family:'Chakra Petch',sans-serif; font-weight:600; letter-spacing:.05em; font-size:.78rem; cursor:pointer;
   }
   .tabbar button.on{color:var(--bg-0); background:var(--cyan); border-color:var(--cyan);}
 
-  .field{margin-bottom:12px;}
-  .field label{display:block; font-size:.7rem; color:var(--text-dim); letter-spacing:.08em; margin-bottom:6px; text-transform:uppercase;}
+  .field{margin-bottom:10px;}
+  .field label{display:block; font-size:.68rem; color:var(--text-dim); letter-spacing:.08em; margin-bottom:4px; text-transform:uppercase;}
   .field input{
-    width:100%; background:#060a14; border:1px solid var(--line); border-radius:8px; padding:12px;
-    color:var(--text); font-family:'JetBrains Mono',monospace; font-size:1rem; letter-spacing:.12em; text-transform:uppercase;
+    width:100%; background:#060a14; border:1px solid var(--line); border-radius:8px; padding:10px;
+    color:var(--text); font-family:'JetBrains Mono',monospace; font-size:.9rem; letter-spacing:.12em; text-transform:uppercase;
   }
-  .status-line{font-size:.76rem; color:var(--text-dim); margin-top:10px; min-height:16px;}
+  .status-line{font-size:.74rem; color:var(--text-dim); margin-top:8px; min-height:16px;}
   .status-line.ok{color:var(--green);}
   .code-display{
-    font-family:'JetBrains Mono',monospace; font-size:1.5rem; letter-spacing:.22em; color:var(--cyan);
-    background:#060a14; border:1px dashed var(--cyan-dim); border-radius:8px; padding:14px; text-align:center; margin-bottom:6px;
+    font-family:'JetBrains Mono',monospace; font-size:1.3rem; letter-spacing:.22em; color:var(--cyan);
+    background:#060a14; border:1px dashed var(--cyan-dim); border-radius:8px; padding:10px; text-align:center; margin-bottom:6px;
   }
-  .lobby-list{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; max-height:120px; overflow-y:auto;}
-  .lobby-list li{display:flex; justify-content:space-between; font-size:.8rem; padding:8px 10px; background:#0b1220; border-radius:7px; border:1px solid var(--line);}
+  .lobby-list{list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; max-height:100px; overflow-y:auto;}
+  .lobby-list li{display:flex; justify-content:space-between; font-size:.78rem; padding:6px 8px; background:#0b1220; border-radius:6px; border:1px solid var(--line);}
 
-  /* HUD */
+  /* HUD & LOADOUT DOCK */
   #hud{position:absolute; inset:0; z-index:5; display:none; pointer-events:none;}
   #hud.active{display:block;}
   .hud-top{
     position:absolute; top:calc(10px + var(--safe-top)); left:calc(10px + var(--safe-left)); right:calc(10px + var(--safe-right));
     display:flex; justify-content:space-between; align-items:flex-start; gap:8px;
   }
-  .hp-wrap{width:150px;}
-  .hp-label{font-size:.62rem; color:var(--text-dim); letter-spacing:.14em; margin-bottom:3px; font-family:'JetBrains Mono',monospace;}
-  .hp-bar-bg{height:11px; border-radius:6px; background:#0b1424; border:1px solid var(--line); overflow:hidden;}
-  .hp-bar-fill{height:100%; width:100%; background:linear-gradient(90deg,var(--green),#22d98a); transition:width .18s ease, background .2s ease;}
+  .hp-wrap{width:140px;}
+  .hp-label{font-size:.6rem; color:var(--text-dim); letter-spacing:.14em; margin-bottom:3px; font-family:'JetBrains Mono',monospace;}
+  .hp-bar-bg{height:10px; border-radius:5px; background:#0b1424; border:1px solid var(--line); overflow:hidden;}
+  .hp-bar-fill{height:100%; width:100%; background:linear-gradient(90deg,var(--green),#22d98a); transition:width .18s ease;}
   .stat-pill{
-    font-family:'JetBrains Mono',monospace; font-size:.72rem; color:var(--text); background:#0b1424cc; border:1px solid var(--line);
+    font-family:'JetBrains Mono',monospace; font-size:.7rem; color:var(--text); background:#0b1424cc; border:1px solid var(--line);
     border-radius:8px; padding:6px 10px; text-align:right; pointer-events:auto;
   }
-  .stat-pill b{color:var(--amber); font-size:.9rem;}
+  .stat-pill b{color:var(--amber); font-size:.85rem;}
   #pauseBtn{
-    pointer-events:auto; width:36px; height:36px; border-radius:8px; background:#0b1424cc; border:1px solid var(--line); color:var(--text);
-    font-size:1rem; display:flex; align-items:center; justify-content:center; margin-top:6px; cursor:pointer;
+    pointer-events:auto; width:34px; height:34px; border-radius:8px; background:#0b1424cc; border:1px solid var(--line); color:var(--text);
+    font-size:.9rem; display:flex; align-items:center; justify-content:center; margin-top:4px; cursor:pointer;
   }
+
+  /* Weapon Selector Dock */
+  .weapon-dock{
+    position:absolute; bottom:calc(14px + var(--safe-bottom)); left:50%; transform:translateX(-50%);
+    display:flex; gap:6px; background:#0b1424dd; border:1px solid var(--line); padding:6px; border-radius:12px; pointer-events:auto;
+  }
+  .wpn-slot{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; width:64px; height:46px;
+    border:1px solid var(--line); border-radius:8px; background:#060a14; cursor:pointer; transition: all .15s ease;
+  }
+  .wpn-slot.active{border-color:var(--cyan); background:#0f2238; box-shadow:0 0 10px rgba(61,242,255,.3);}
+  .wpn-slot .num{font-family:'JetBrains Mono',monospace; font-size:.6rem; color:var(--text-dim);}
+  .wpn-slot .name{font-family:'Chakra Petch',sans-serif; font-size:.62rem; font-weight:700; color:var(--text); margin-top:2px; text-transform:uppercase;}
+
   .wave-banner{
     position:absolute; top:16%; left:50%; transform:translate(-50%,-10px); opacity:0; transition:opacity .3s ease, transform .3s ease;
-    font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:1.5rem; letter-spacing:.1em; color:var(--amber);
+    font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:1.4rem; letter-spacing:.1em; color:var(--amber);
     text-shadow:0 0 18px rgba(255,181,69,.7); pointer-events:none; text-align:center;
   }
   .wave-banner.show{opacity:1; transform:translate(-50%,0);}
@@ -185,7 +195,7 @@
     position:absolute; top:calc(60px + var(--safe-top)); right:calc(10px + var(--safe-right)); display:flex; flex-direction:column; gap:4px; align-items:flex-end;
   }
   .killfeed div{
-    font-family:'JetBrains Mono',monospace; font-size:.68rem; background:#0b1424cc; border:1px solid var(--line); border-radius:6px;
+    font-family:'JetBrains Mono',monospace; font-size:.65rem; background:#0b1424cc; border:1px solid var(--line); border-radius:6px;
     padding:4px 8px; color:var(--text-dim); animation:kf .25s ease;
   }
   @keyframes kf{from{opacity:0; transform:translateX(10px);} to{opacity:1; transform:translateX(0);}}
@@ -194,38 +204,37 @@
   #crosshair svg{width:100%; height:100%; opacity:.85;}
   .dmg-vignette{position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .12s ease; box-shadow: inset 0 0 120px 20px rgba(255,60,60,.7);}
 
-  /* Mobile Touch Overlay */
+  /* Mobile Overlay */
   #mobileControls{position:absolute; inset:0; pointer-events:none; display:none; z-index: 6;}
   #mobileControls.on{display:block;}
   .zone{position:absolute; inset:0; pointer-events:auto;}
   .zone.move{right:50%;}
   .zone.look{left:50%;}
   .joy-base{
-    position:absolute; width:108px; height:108px; border-radius:50%; border:1.5px solid rgba(61,242,255,.45);
+    position:absolute; width:100px; height:100px; border-radius:50%; border:1.5px solid rgba(61,242,255,.45);
     background:rgba(9,16,30,.35); pointer-events:none; display:none; backdrop-filter:blur(1px); transform:translate(-50%,-50%);
   }
   .joy-nub{
-    position:absolute; width:46px; height:46px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #64f6ff, #0d8fa3);
+    position:absolute; width:42px; height:42px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #64f6ff, #0d8fa3);
     box-shadow:0 0 16px rgba(61,242,255,.8); left:50%; top:50%; transform:translate(-50%,-50%); pointer-events:none;
   }
   .action-btns{
-    position:absolute; right:calc(18px + var(--safe-right)); bottom:calc(22px + var(--safe-bottom)); display:flex; flex-direction:column; align-items:center; gap:14px; pointer-events:auto; z-index: 7;
+    position:absolute; right:calc(16px + var(--safe-right)); bottom:calc(70px + var(--safe-bottom)); display:flex; flex-direction:column; align-items:center; gap:10px; pointer-events:auto; z-index: 7;
   }
   .abtn{
-    width:78px; height:78px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:.68rem; letter-spacing:.05em; color:var(--text);
+    width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:.65rem; letter-spacing:.05em; color:var(--text);
     background:radial-gradient(circle at 35% 30%, rgba(255,77,94,.9), rgba(120,20,30,.75));
     border:1.5px solid rgba(255,120,120,.6); box-shadow:0 0 18px rgba(255,77,94,.35);
   }
   .abtn.jump{
-    width:56px; height:56px; background:radial-gradient(circle at 35% 30%, rgba(93,255,176,.9), rgba(15,90,60,.75));
+    width:52px; height:52px; background:radial-gradient(circle at 35% 30%, rgba(93,255,176,.9), rgba(15,90,60,.75));
     border-color:rgba(120,255,190,.6); box-shadow:0 0 14px rgba(93,255,176,.3);
   }
-  .abtn:active, .abtn.firing{transform:scale(.92);}
   .desktop-hint{
-    position:absolute; bottom:calc(16px + var(--safe-bottom)); left:50%; transform:translateX(-50%);
-    font-family:'JetBrains Mono',monospace; font-size:.72rem; color:var(--text-dim); background:#0b1424cc; border:1px solid var(--line);
-    padding:6px 12px; border-radius:100px; pointer-events:none;
+    position:absolute; top:calc(14px + var(--safe-top)); left:50%; transform:translateX(-50%);
+    font-family:'JetBrains Mono',monospace; font-size:.68rem; color:var(--text-dim); background:#0b1424cc; border:1px solid var(--line);
+    padding:4px 10px; border-radius:100px; pointer-events:none;
   }
 
   /* Modals */
@@ -235,20 +244,18 @@
   }
   #pauseOverlay.active, #gameoverOverlay.active{display:flex;}
   .modal{
-    background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:26px 22px; width:88%; max-width:360px; text-align:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px; width:88%; max-width:360px; text-align:center;
   }
-  .modal h2{margin:0 0 4px; font-size:1.3rem;}
-  .modal .sub{color:var(--text-dim); font-size:.8rem; margin-bottom:18px;}
-  .score-row{display:flex; justify-content:space-between; padding:10px 4px; border-top:1px solid var(--line); font-family:'JetBrains Mono',monospace; font-size:.85rem;}
+  .modal h2{margin:0 0 4px; font-size:1.2rem;}
+  .modal .sub{color:var(--text-dim); font-size:.78rem; margin-bottom:14px;}
+  .score-row{display:flex; justify-content:space-between; padding:8px 4px; border-top:1px solid var(--line); font-family:'JetBrains Mono',monospace; font-size:.82rem;}
   .score-row:first-of-type{border-top:none;}
-  .score-row b{color:var(--cyan); font-size:1.1rem;}
-  .new-best{color:var(--amber); font-size:.72rem; letter-spacing:.1em; margin-top:6px; display:none;}
-  .new-best.show{display:block;}
+  .score-row b{color:var(--cyan); font-size:1rem;}
 
   .loading{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; z-index:30; background:var(--bg-0);}
-  .loading .ring{width:44px; height:44px; border-radius:50%; border:3px solid #1c2740; border-top-color:var(--cyan); animation:spin 1s linear infinite;}
+  .loading .ring{width:40px; height:40px; border-radius:50%; border:3px solid #1c2740; border-top-color:var(--cyan); animation:spin 1s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
-  .loading p{font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--text-dim); letter-spacing:.08em;}
+  .loading p{font-family:'JetBrains Mono',monospace; font-size:.72rem; color:var(--text-dim); letter-spacing:.08em;}
 </style>
 </head>
 <body>
@@ -257,45 +264,80 @@
 
   <div class="loading" id="loadingScreen">
     <div class="ring"></div>
-    <p>LOADING ARENA &amp; MODELS…</p>
+    <p>GENERATING HIGH-DETAIL MODELS &amp; ARENAS…</p>
   </div>
 
   <!-- MAIN MENU -->
   <div class="screen" id="screen-menu">
     <div class="grid-veil"></div>
     <h1 class="logo">SHOOTER<span>MEMO</span></h1>
-    <div class="tagline">Tactical 3D Arena</div>
+    <div class="tagline">Extended Tactical Arena</div>
     <div class="menu-stack">
       <button class="btn btn-primary btn-wide" id="btnSingle">Single Player <span class="k">SURVIVE</span></button>
       <button class="btn btn-accent btn-wide" id="btnMulti">Multiplayer <span class="k">ONLINE</span></button>
-      <button class="btn btn-ghost btn-wide" id="btnShop">Gun Shop <span class="k" id="activeGunLabel">PISTOL</span></button>
-      <button class="btn btn-ghost btn-wide" id="btnHow">How To Play</button>
+      <button class="btn btn-ghost btn-wide" id="btnShop">Armory / Loadout <span class="k">4 SLOTS</span></button>
+      <button class="btn btn-ghost btn-wide" id="btnHow">Controls &amp; Help</button>
     </div>
     <div class="best-chip">BEST WAVE SCORE: <b id="bestScoreChip">0</b></div>
   </div>
 
-  <!-- GUN SHOP SCREEN -->
+  <!-- ARMORY / LOADOUT SHOP SCREEN -->
   <div class="screen" id="screen-shop">
     <div class="grid-veil"></div>
     <div class="panel">
-      <h2>Armory / Gun Shop</h2>
-      <p class="sub">Select your primary tactical loadout.</p>
-      <div class="shop-grid">
-        <div class="shop-card selected" data-gun="pistol">
-          <div class="shop-info"><b>PISTOL</b><span>DMG: 24 | RATE: HIGH</span></div>
-          <button class="btn btn-primary btn-ghost" style="padding:6px 10px; font-size:.7rem;">EQUIP</button>
+      <h2>Tactical Armory</h2>
+      <p class="sub">Configure your 4-weapon combat loadout.</p>
+      <div class="shop-container">
+        
+        <div class="slot-title">1. Primary Weapon</div>
+        <div class="shop-grid">
+          <div class="shop-card" data-slot="primary" data-gun="rifle">
+            <div class="shop-info"><b>ASSAULT RIFLE</b><span>DMG: 28 | RAPID</span></div>
+          </div>
+          <div class="shop-card" data-slot="primary" data-gun="shotgun">
+            <div class="shop-info"><b>HEAVY SHOTGUN</b><span>DMG: 65 | SPREAD</span></div>
+          </div>
+          <div class="shop-card" data-slot="primary" data-gun="sniper">
+            <div class="shop-info"><b>SNIPER RIFLE</b><span>DMG: 110 | HIGH PRECISION</span></div>
+          </div>
+          <div class="shop-card" data-slot="primary" data-gun="smg">
+            <div class="shop-info"><b>PLASMA SMG</b><span>DMG: 18 | ULTRA FAST</span></div>
+          </div>
         </div>
-        <div class="shop-card" data-gun="rifle">
-          <div class="shop-info"><b>ASSAULT RIFLE</b><span>DMG: 32 | RATE: RAPID</span></div>
-          <button class="btn btn-primary btn-ghost" style="padding:6px 10px; font-size:.7rem;">EQUIP</button>
+
+        <div class="slot-title">2. Secondary Weapon</div>
+        <div class="shop-grid">
+          <div class="shop-card" data-slot="secondary" data-gun="pistol">
+            <div class="shop-info"><b>TACTICAL PISTOL</b><span>DMG: 24 | BALANCED</span></div>
+          </div>
+          <div class="shop-card" data-slot="secondary" data-gun="magnum">
+            <div class="shop-info"><b>HEAVY MAGNUM</b><span>DMG: 52 | SLOW FIRE</span></div>
+          </div>
         </div>
-        <div class="shop-card" data-gun="shotgun">
-          <div class="shop-info"><b>HEAVY SHOTGUN</b><span>DMG: 60 | RATE: SLOW</span></div>
-          <button class="btn btn-primary btn-ghost" style="padding:6px 10px; font-size:.7rem;">EQUIP</button>
+
+        <div class="slot-title">3. Melee Weapon</div>
+        <div class="shop-grid">
+          <div class="shop-card" data-slot="melee" data-gun="blade">
+            <div class="shop-info"><b>CYBER BLADE</b><span>DMG: 85 | CLOSE RANGE</span></div>
+          </div>
+          <div class="shop-card" data-slot="melee" data-gun="hammer">
+            <div class="shop-info"><b>WAR HAMMER</b><span>DMG: 120 | HEAVY SWING</span></div>
+          </div>
         </div>
+
+        <div class="slot-title">4. Utility Weapon</div>
+        <div class="shop-grid">
+          <div class="shop-card" data-slot="utility" data-gun="grenade">
+            <div class="shop-info"><b>GRENADE LAUNCHER</b><span>DMG: 90 | EXPLOSIVE</span></div>
+          </div>
+          <div class="shop-card" data-slot="utility" data-gun="flamer">
+            <div class="shop-info"><b>PLASMA BEAM</b><span>DMG: 35 | CONTINUOUS</span></div>
+          </div>
+        </div>
+
       </div>
     </div>
-    <div class="menu-stack" style="max-width:420px;">
+    <div class="menu-stack" style="max-width:520px;">
       <button class="btn btn-ghost btn-wide" id="btnShopBack">Back To Menu</button>
     </div>
   </div>
@@ -304,15 +346,17 @@
   <div class="screen" id="screen-how">
     <div class="grid-veil"></div>
     <div class="panel">
-      <h2>How To Play</h2>
-      <p class="sub">Fully responsive. Touch joysticks or Keyboard/Mouse.</p>
-      <div class="ctrl-row"><div class="ctrl-icon">L</div><div class="ctrl-txt"><b>Move</b><span>Left touch stick or W A S D</span></div></div>
-      <div class="ctrl-row"><div class="ctrl-icon">R</div><div class="ctrl-txt"><b>Look / Aim</b><span>Drag right screen area or Mouse Lock</span></div></div>
-      <div class="ctrl-row"><div class="ctrl-icon">◉</div><div class="ctrl-txt"><b>Fire</b><span>Hold FIRE button or Left Click</span></div></div>
-      <div class="ctrl-row"><div class="ctrl-icon">▲</div><div class="ctrl-txt"><b>Jump</b><span>Tap JUMP button or Spacebar</span></div></div>
-      <div class="ctrl-row"><div class="ctrl-icon">HP</div><div class="ctrl-txt"><b>Power-Ups</b><span>Collect floating green cubes to heal</span></div></div>
+      <h2>Controls &amp; Gameplay</h2>
+      <p class="sub">Use touch controls or Mouse/Keyboard.</p>
+      <div style="font-size:.8rem; line-height:1.6; text-align:left; color:var(--text-dim);">
+        <b style="color:var(--cyan);">[1, 2, 3, 4] / Weapon Dock:</b> Switch Loadout Weapons in real time.<br>
+        <b style="color:var(--cyan);">[WASD] / Left Stick:</b> Move Character.<br>
+        <b style="color:var(--cyan);">[Mouse] / Right Drag:</b> Aim &amp; Turn.<br>
+        <b style="color:var(--cyan);">[Left Click] / FIRE:</b> Attack / Shoot.<br>
+        <b style="color:var(--cyan);">[Space] / JUMP:</b> Jump over cover.
+      </div>
     </div>
-    <div class="menu-stack" style="max-width:420px;">
+    <div class="menu-stack" style="max-width:520px;">
       <button class="btn btn-ghost btn-wide" id="btnHowBack">Back</button>
     </div>
   </div>
@@ -322,7 +366,7 @@
     <div class="grid-veil"></div>
     <div class="panel">
       <h2>Multiplayer Lobby</h2>
-      <p class="sub">Choose environment &amp; create or join a P2P session.</p>
+      <p class="sub">Select 1 of 10 Arena maps &amp; launch P2P battle.</p>
       <div class="tabbar">
         <button class="on" id="tabHost">Host Match</button>
         <button id="tabJoin">Join Match</button>
@@ -330,23 +374,19 @@
 
       <div id="paneHost">
         <div class="field">
-          <label>Arena Environment</label>
-          <div class="map-grid">
-            <div class="map-card selected" data-map="city"><div class="icon"></div><span>Neo City</span></div>
-            <div class="map-card" data-map="desert"><div class="icon"></div><span>Desert</span></div>
-            <div class="map-card" data-map="lava"><div class="icon"></div><span>Lava</span></div>
-          </div>
+          <label>Arena Environment (10 Maps Available)</label>
+          <div class="map-grid" id="mapGrid"></div>
         </div>
         <div class="field">
           <label>Your Name</label>
           <input id="nameHost" maxlength="12" placeholder="PLAYER">
         </div>
         <button class="btn btn-primary btn-wide" id="btnCreateRoom">Create Room</button>
-        <div id="roomInfo" style="display:none; margin-top:14px;">
+        <div id="roomInfo" style="display:none; margin-top:12px;">
           <div class="code-display" id="roomCode">------</div>
           <div class="status-line" id="hostStatus">Waiting for players…</div>
           <ul class="lobby-list" id="hostLobbyList"></ul>
-          <button class="btn btn-primary btn-wide" id="btnStartMatch" style="margin-top:12px;">Start Match</button>
+          <button class="btn btn-primary btn-wide" id="btnStartMatch" style="margin-top:10px;">Start Match</button>
         </div>
       </div>
 
@@ -364,7 +404,7 @@
         <ul class="lobby-list" id="joinLobbyList"></ul>
       </div>
     </div>
-    <div class="menu-stack" style="max-width:420px;">
+    <div class="menu-stack" style="max-width:520px;">
       <button class="btn btn-ghost btn-wide" id="btnMpBack">Back To Menu</button>
     </div>
   </div>
@@ -376,18 +416,39 @@
         <div class="hp-label">HULL INTEGRITY</div>
         <div class="hp-bar-bg"><div class="hp-bar-fill" id="hpFill"></div></div>
       </div>
-      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
         <div class="stat-pill" id="statPill">WAVE <b id="waveNum">1</b> &nbsp;·&nbsp; SCORE <b id="scoreNum">0</b></div>
         <button id="pauseBtn">‖</button>
       </div>
     </div>
+
+    <!-- 4-SLOT WEAPON DOCK -->
+    <div class="weapon-dock" id="weaponDock">
+      <div class="wpn-slot active" data-slot-idx="0">
+        <span class="num">1 PRI</span>
+        <span class="name" id="slotName0">RIFLE</span>
+      </div>
+      <div class="wpn-slot" data-slot-idx="1">
+        <span class="num">2 SEC</span>
+        <span class="name" id="slotName1">PISTOL</span>
+      </div>
+      <div class="wpn-slot" data-slot-idx="2">
+        <span class="num">3 MEL</span>
+        <span class="name" id="slotName2">BLADE</span>
+      </div>
+      <div class="wpn-slot" data-slot-idx="3">
+        <span class="num">4 UTI</span>
+        <span class="name" id="slotName3">GRENADE</span>
+      </div>
+    </div>
+
     <div class="killfeed" id="killfeed"></div>
     <div class="wave-banner" id="waveBanner"></div>
     <div class="dmg-vignette" id="dmgVignette"></div>
     <div id="crosshair">
       <svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="#3df2ff" stroke-width="1" opacity=".55"/><line x1="11" y1="0" x2="11" y2="6" stroke="#3df2ff" stroke-width="1.6"/><line x1="11" y1="16" x2="11" y2="22" stroke="#3df2ff" stroke-width="1.6"/><line x1="0" y1="11" x2="6" y2="11" stroke="#3df2ff" stroke-width="1.6"/><line x1="16" y1="11" x2="22" y2="11" stroke="#3df2ff" stroke-width="1.6"/></svg>
     </div>
-    <div class="desktop-hint" id="desktopHint">CLICK TO LOCK MOUSE · WASD MOVE · CLICK TO FIRE · SPACE JUMP · ESC PAUSE</div>
+    <div class="desktop-hint" id="desktopHint">1-4 SWITCH WEAPON · WASD MOVE · CLICK FIRE · SPACE JUMP</div>
   </div>
 
   <div id="mobileControls">
@@ -423,7 +484,6 @@
         <div class="score-row"><span>Wave Reached</span><b id="goWave">1</b></div>
         <div class="score-row"><span>Best</span><b id="goBest">0</b></div>
       </div>
-      <div class="new-best" id="newBestTag">★ NEW BEST SCORE ★</div>
       <div class="menu-stack">
         <button class="btn btn-primary btn-wide" id="btnPlayAgain">Play Again</button>
         <button class="btn btn-ghost btn-wide" id="btnGoMenu">Main Menu</button>
@@ -452,14 +512,79 @@ var Store = {
 var bestScore = Store.get('shootermemo_best_sp', 0);
 $('bestScoreChip').textContent = bestScore;
 
-/* WEAPON TYPES & SELECTION */
+/* EXTENDED WEAPON DEFINITIONS (DISTINCT GUN COLORS & STYLES) */
 var WEAPONS = {
-  pistol: { name: 'PISTOL', rate: 0.16, damage: 24, length: 0.42 },
-  rifle: { name: 'ASSAULT RIFLE', rate: 0.1, damage: 32, length: 0.65 },
-  shotgun: { name: 'HEAVY SHOTGUN', rate: 0.4, damage: 60, length: 0.55 }
+  // Primary
+  rifle: { name: 'RIFLE', type: 'primary', rate: 0.1, damage: 28, length: 0.7, bodyColor: 0x222a36, accentColor: 0x3df2ff, style: 'rifle' },
+  shotgun: { name: 'SHOTGUN', type: 'primary', rate: 0.45, damage: 65, length: 0.6, bodyColor: 0x3b2414, accentColor: 0xffb545, style: 'shotgun' },
+  sniper: { name: 'SNIPER', type: 'primary', rate: 0.8, damage: 110, length: 0.95, bodyColor: 0x122416, accentColor: 0x5dffb0, style: 'sniper' },
+  smg: { name: 'SMG', type: 'primary', rate: 0.06, damage: 18, length: 0.45, bodyColor: 0x36182e, accentColor: 0xff3d9a, style: 'smg' },
+  // Secondary
+  pistol: { name: 'PISTOL', type: 'secondary', rate: 0.16, damage: 24, length: 0.35, bodyColor: 0x4a4d52, accentColor: 0xffe600, style: 'pistol' },
+  magnum: { name: 'MAGNUM', type: 'secondary', rate: 0.35, damage: 52, length: 0.42, bodyColor: 0x2b1c1c, accentColor: 0xff4d5e, style: 'magnum' },
+  // Melee
+  blade: { name: 'BLADE', type: 'melee', rate: 0.25, damage: 85, length: 0.8, bodyColor: 0x111111, accentColor: 0x00ffff, style: 'blade' },
+  hammer: { name: 'HAMMER', type: 'melee', rate: 0.6, damage: 120, length: 0.75, bodyColor: 0x332211, accentColor: 0xffa500, style: 'hammer' },
+  // Utility
+  grenade: { name: 'GRENADE', type: 'utility', rate: 0.7, damage: 90, length: 0.5, bodyColor: 0x1f301d, accentColor: 0x76ff03, style: 'launcher' },
+  flamer: { name: 'BEAM', type: 'utility', rate: 0.05, damage: 35, length: 0.65, bodyColor: 0x3d120a, accentColor: 0xff3d00, style: 'beam' }
 };
-var selectedGunKey = Store.get('shootermemo_equipped_gun', 'pistol');
-$('activeGunLabel').textContent = WEAPONS[selectedGunKey].name;
+
+/* Player Loadout (4 Slots) */
+var myLoadout = Store.get('shootermemo_loadout', {
+  primary: 'rifle',
+  secondary: 'pistol',
+  melee: 'blade',
+  utility: 'grenade'
+});
+var activeSlotIndex = 0; // 0=Primary, 1=Secondary, 2=Melee, 3=Utility
+
+function getActiveGunKey(){
+  var slots = [myLoadout.primary, myLoadout.secondary, myLoadout.melee, myLoadout.utility];
+  return slots[activeSlotIndex] || 'rifle';
+}
+
+function updateLoadoutDockUI(){
+  var slots = [myLoadout.primary, myLoadout.secondary, myLoadout.melee, myLoadout.utility];
+  for(var i=0; i<4; i++){
+    var key = slots[i];
+    $('slotName'+i).textContent = WEAPONS[key] ? WEAPONS[key].name : key;
+  }
+  document.querySelectorAll('.wpn-slot').forEach(function(el, idx){
+    el.classList.toggle('active', idx === activeSlotIndex);
+  });
+}
+
+/* 10 DISTINCT MAP DEFINITIONS */
+var MAP_CONFIGS = [
+  { id: 'city', name: 'Neo City', floor: 0x2a354a, wall: 0x16294a, emissive: 0x123f57, grid1: 0x3df2ff, grid2: 0x1e4968, fog: 0x0a1220, type: 'boxes' },
+  { id: 'desert', name: 'Desert Oasis', floor: 0xd2a679, wall: 0x8c6239, emissive: 0x4a321a, grid1: 0xffe6b3, grid2: 0xb37700, fog: 0x2b1d0e, type: 'cylinders' },
+  { id: 'lava', name: 'Lava Core', floor: 0x1a0d0d, wall: 0x331414, emissive: 0x660000, grid1: 0xff3d00, grid2: 0x800000, fog: 0x1a0505, type: 'spikes' },
+  { id: 'cyber', name: 'Cyber Grid', floor: 0x050b14, wall: 0x0c1d36, emissive: 0x00ffff, grid1: 0x00ffff, grid2: 0x005577, fog: 0x030810, type: 'pillars' },
+  { id: 'arctic', name: 'Arctic Outpost', floor: 0xd0e6f7, wall: 0x7fa3c4, emissive: 0x3a6082, grid1: 0xffffff, grid2: 0x5b82a6, fog: 0x182633, type: 'ice' },
+  { id: 'jungle', name: 'Jungle Ruins', floor: 0x1e331b, wall: 0x2f4f28, emissive: 0x173812, grid1: 0x5dffb0, grid2: 0x155210, fog: 0x0a1708, type: 'ruins' },
+  { id: 'toxin', name: 'Toxic Zone', floor: 0x131c10, wall: 0x24381e, emissive: 0x386b16, grid1: 0x76ff03, grid2: 0x224f02, fog: 0x0b1409, type: 'tanks' },
+  { id: 'void', name: 'Void Station', floor: 0x14101d, wall: 0x281f38, emissive: 0x5b2d82, grid1: 0xaa00ff, grid2: 0x440066, fog: 0x0c0912, type: 'monoliths' },
+  { id: 'sunset', name: 'Sunset Canyon', floor: 0x4a231b, wall: 0x6e3528, emissive: 0x8c3b1e, grid1: 0xff6d00, grid2: 0x5e1900, fog: 0x240d08, type: 'canyon' },
+  { id: 'bunker', name: 'Steel Bunker', floor: 0x26282b, wall: 0x3d4147, emissive: 0x575c63, grid1: 0xffb545, grid2: 0x33363b, fog: 0x121314, type: 'crates' }
+];
+
+/* Populate Map Selector UI */
+(function(){
+  var grid = $('mapGrid');
+  MAP_CONFIGS.forEach(function(m, idx){
+    var card = document.createElement('div');
+    card.className = 'map-card' + (idx === 0 ? ' selected' : '');
+    card.setAttribute('data-map', m.id);
+    card.innerHTML = '<div class="icon" style="background:#' + m.emissive.toString(16) + '"></div><span>' + m.name + '</span>';
+    card.addEventListener('click', function(){
+      document.querySelectorAll('.map-card').forEach(function(c){ c.classList.remove('selected'); });
+      card.classList.add('selected');
+      App.selectedMap = m.id;
+    });
+    grid.appendChild(card);
+  });
+})();
 
 /* THREE Setup */
 var canvas = $('gl');
@@ -513,49 +638,37 @@ scene.add(rim2);
   scene.add(new THREE.Points(g,m));
 })();
 
-/* MAP GENERATION SYSTEM */
+/* MAP GENERATION SYSTEM (10 MAPS) */
 var ARENA_HALF = 28;
 var obstacles = [];
 var arenaObjects = [];
 var currentMapTheme = 'city';
 
-function buildArena(theme){
-  currentMapTheme = theme || 'city';
+function buildArena(mapId){
+  var cfg = MAP_CONFIGS.find(function(m){ return m.id === mapId; }) || MAP_CONFIGS[0];
+  currentMapTheme = cfg.id;
   arenaObjects.forEach(function(o){ scene.remove(o); });
   arenaObjects = [];
   obstacles = [];
 
-  var floorColor, gridColor1, gridColor2, wallColor, wallEmissive, fogColor;
-
-  if(theme === 'desert'){
-    floorColor = 0xd2a679; gridColor1 = 0xffe6b3; gridColor2 = 0xb37700;
-    wallColor = 0x8c6239; wallEmissive = 0x4a321a; fogColor = 0x2b1d0e;
-  } else if(theme === 'lava'){
-    floorColor = 0x1a0d0d; gridColor1 = 0xff3d00; gridColor2 = 0x800000;
-    wallColor = 0x331414; wallEmissive = 0x660000; fogColor = 0x1a0505;
-  } else { // city
-    floorColor = 0x2a354a; gridColor1 = 0x3df2ff; gridColor2 = 0x1e4968;
-    wallColor = 0x16294a; wallEmissive = 0x123f57; fogColor = 0x0a1220;
-  }
-
-  scene.background = new THREE.Color(fogColor);
-  scene.fog = new THREE.FogExp2(fogColor, 0.008);
+  scene.background = new THREE.Color(cfg.fog);
+  scene.fog = new THREE.FogExp2(cfg.fog, 0.008);
 
   // Floor
-  var floorMat = new THREE.MeshStandardMaterial({ color: floorColor, roughness: 0.7, metalness: 0.15 });
+  var floorMat = new THREE.MeshStandardMaterial({ color: cfg.floor, roughness: 0.7, metalness: 0.15 });
   var floor = new THREE.Mesh(new THREE.PlaneGeometry(ARENA_HALF*2, ARENA_HALF*2), floorMat);
   floor.rotation.x = -Math.PI/2;
   floor.receiveShadow = true;
   scene.add(floor); arenaObjects.push(floor);
 
   // Grid
-  var grid = new THREE.GridHelper(ARENA_HALF*2, 56, gridColor1, gridColor2);
+  var grid = new THREE.GridHelper(ARENA_HALF*2, 56, cfg.grid1, cfg.grid2);
   grid.position.y = 0.01;
   grid.material.transparent = true; grid.material.opacity = 0.65;
   scene.add(grid); arenaObjects.push(grid);
 
   // Outer Walls
-  var wallMat = new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.6, metalness: 0.3, emissive: wallEmissive, emissiveIntensity: 0.6 });
+  var wallMat = new THREE.MeshStandardMaterial({ color: cfg.wall, roughness: 0.6, metalness: 0.3, emissive: cfg.emissive, emissiveIntensity: 0.6 });
   var wallH = 5, wallT = 1;
   var wallDefs = [
     [0, -ARENA_HALF-wallT/2, ARENA_HALF*2+wallT*2, wallT],
@@ -569,43 +682,41 @@ function buildArena(theme){
     scene.add(mesh); arenaObjects.push(mesh);
   });
 
-  // Theme Specific Cover Obstacles
+  // Obstacle Generation
   var coords = [];
   var tries = 0;
-  while(coords.length < 12 && tries < 200){
+  while(coords.length < 14 && tries < 250){
     tries++;
     var x = rand(-ARENA_HALF+6, ARENA_HALF-6), z = rand(-ARENA_HALF+6, ARENA_HALF-6);
     if(Math.hypot(x,z) < 6) continue;
     var ok = true;
-    for(var i=0;i<coords.length;i++){ if(Math.hypot(x-coords[i][0], z-coords[i][1]) < 6){ ok=false; break; } }
+    for(var i=0;i<coords.length;i++){ if(Math.hypot(x-coords[i][0], z-coords[i][1]) < 5.5){ ok=false; break; } }
     if(ok) coords.push([x,z]);
   }
 
   coords.forEach(function(c){
-    var mesh, radius;
-    if(theme === 'desert'){
-      var radiusVal = rand(1.2, 2.2);
+    var mesh, radius = 1.5;
+    if(cfg.type === 'cylinders' || cfg.type === 'tanks'){
+      radius = rand(1.2, 2.0);
       mesh = new THREE.Mesh(
-        new THREE.CylinderGeometry(radiusVal*0.7, radiusVal, rand(2.5, 4.5), 8),
-        new THREE.MeshStandardMaterial({ color: 0xa67c52, roughness: 0.9 })
+        new THREE.CylinderGeometry(radius*0.8, radius, rand(2.5, 4.5), 12),
+        new THREE.MeshStandardMaterial({ color: cfg.wall, roughness: 0.5, emissive: cfg.emissive, emissiveIntensity: 0.4 })
       );
-      radius = radiusVal;
-    } else if(theme === 'lava'){
-      var size = rand(1.8, 2.6);
+    } else if(cfg.type === 'spikes' || cfg.type === 'monoliths'){
+      radius = rand(1.0, 1.8);
       mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(size, rand(2.5, 5.0), size),
-        new THREE.MeshStandardMaterial({ color: 0x261212, roughness: 0.4, emissive: 0xff3300, emissiveIntensity: 0.3 })
+        new THREE.ConeGeometry(radius, rand(3.5, 5.5), 6),
+        new THREE.MeshStandardMaterial({ color: cfg.wall, roughness: 0.3, emissive: cfg.emissive, emissiveIntensity: 0.5 })
       );
-      radius = size * 0.6;
-    } else { // city pillars
-      var w = rand(1.6, 2.4), h = rand(2.8, 4.5);
+    } else { // Default boxes/pillars
+      var sz = rand(1.6, 2.6);
+      radius = sz * 0.6;
       mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(w, h, w),
-        new THREE.MeshStandardMaterial({ color: 0x1c2e4a, roughness: 0.55, metalness: 0.4, emissive: 0x224270, emissiveIntensity: 0.45 })
+        new THREE.BoxGeometry(sz, rand(2.5, 4.5), sz),
+        new THREE.MeshStandardMaterial({ color: cfg.wall, roughness: 0.5, metalness: 0.4, emissive: cfg.emissive, emissiveIntensity: 0.4 })
       );
-      radius = w * 0.55;
     }
-    mesh.position.set(c[0], mesh.geometry.parameters.height ? mesh.geometry.parameters.height/2 : 1.8, c[1]);
+    mesh.position.set(c[0], 1.8, c[1]);
     scene.add(mesh); arenaObjects.push(mesh);
     obstacles.push({ x: c[0], z: c[1], r: radius });
   });
@@ -630,74 +741,121 @@ function collideCircle(x,z,radius){
 
 buildArena('city');
 
-/* HUMANOID CHARACTER BUILDER WITH GUN & ANIMATION RIG[cite: 1] */
-function createHumanoidModel(primaryColor, glowColor, gunKey){
+/* FULLY REFINED 3D WEAPON GENERATOR (DISTINCT GUN COLOURS & STYLES) */
+function createDetailedWeaponMesh(gunKey){
+  var wData = WEAPONS[gunKey] || WEAPONS.rifle;
   var group = new THREE.Group();
-  var armorMat = new THREE.MeshStandardMaterial({ color: primaryColor, roughness: 0.4, metalness: 0.6 });
-  var jointMat = new THREE.MeshStandardMaterial({ color: 0x111622, roughness: 0.8 });
-  var glowMat = new THREE.MeshStandardMaterial({ color: glowColor, emissive: glowColor, emissiveIntensity: 0.8 });
+
+  var bodyMat = new THREE.MeshStandardMaterial({ color: wData.bodyColor, roughness: 0.3, metalness: 0.7 });
+  var accentMat = new THREE.MeshStandardMaterial({ color: wData.accentColor, emissive: wData.accentColor, emissiveIntensity: 0.7 });
+  var metalMat = new THREE.MeshStandardMaterial({ color: 0x111622, roughness: 0.2, metalness: 0.9 });
+
+  if(wData.style === 'blade' || wData.style === 'hammer'){
+    // Melee Weapon
+    if(wData.style === 'blade'){
+      var handle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.3), metalMat);
+      handle.rotation.x = Math.PI/2;
+      group.add(handle);
+      var bladeMesh = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.12, wData.length), accentMat);
+      bladeMesh.position.set(0, 0, -wData.length/2);
+      group.add(bladeMesh);
+    } else { // Hammer
+      var handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.6), metalMat);
+      handle.rotation.x = Math.PI/2;
+      group.add(handle);
+      var headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.25), bodyMat);
+      headMesh.position.set(0, 0, -0.35);
+      group.add(headMesh);
+    }
+  } else {
+    // Ranged Guns
+    var mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.1, wData.length*0.6), bodyMat);
+    group.add(mainBody);
+
+    var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, wData.length*0.7, 10), metalMat);
+    barrel.rotation.x = Math.PI/2;
+    barrel.position.set(0, 0.02, -wData.length*0.4);
+    group.add(barrel);
+
+    var accentGrip = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.14, 0.08), accentMat);
+    accentGrip.position.set(0, -0.08, 0.05);
+    group.add(accentGrip);
+
+    if(wData.style === 'sniper'){
+      var scope = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 10), accentMat);
+      scope.rotation.x = Math.PI/2; scope.position.set(0, 0.08, -0.1);
+      group.add(scope);
+    }
+  }
+
+  return group;
+}
+
+/* HIGHLY REFINED CHARACTER MODEL RIG */
+function createRefinedHumanoidModel(primaryColor, glowColor, gunKey){
+  var group = new THREE.Group();
+  var armorMat = new THREE.MeshStandardMaterial({ color: primaryColor, roughness: 0.35, metalness: 0.6 });
+  var jointMat = new THREE.MeshStandardMaterial({ color: 0x0a0e17, roughness: 0.8 });
+  var glowMat = new THREE.MeshStandardMaterial({ color: glowColor, emissive: glowColor, emissiveIntensity: 0.9 });
 
   // Pelvis / Hips
-  var pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.3), armorMat);
-  pelvis.position.y = 0.85;
+  var pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.18, 0.28), armorMat);
+  pelvis.position.y = 0.88;
   group.add(pelvis);
 
-  // Chest / Torso
-  var chest = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.55, 0.38), armorMat);
+  // Chest & Shoulder Plates
+  var chest = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.52, 0.36), armorMat);
   chest.position.y = 1.25;
   group.add(chest);
 
-  // Visor / Head
-  var head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.32), armorMat);
+  var chestCore = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.05), glowMat);
+  chestCore.position.set(0, 1.3, 0.19);
+  group.add(chestCore);
+
+  // Tactical Helmet / Visor
+  var head = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.28), armorMat);
   head.position.y = 1.68;
-  var visor = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.1, 0.1), glowMat);
-  visor.position.set(0, 1.7, 0.14);
+  var visor = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.12), glowMat);
+  visor.position.set(0, 1.7, 0.12);
   group.add(head); group.add(visor);
 
-  // Shoulder Joints & Arms
+  // Arms & Shoulders
   var leftArmPivot = new THREE.Group();
-  leftArmPivot.position.set(-0.44, 1.4, 0);
-  var leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), armorMat);
-  leftArm.position.y = -0.25;
-  leftArmPivot.add(leftArm);
+  leftArmPivot.position.set(-0.42, 1.4, 0);
+  var leftShoulder = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), armorMat);
+  leftShoulder.position.set(0, 0, 0);
+  var leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), jointMat);
+  leftArm.position.y = -0.28;
+  leftArmPivot.add(leftShoulder); leftArmPivot.add(leftArm);
   group.add(leftArmPivot);
 
   var rightArmPivot = new THREE.Group();
-  rightArmPivot.position.set(0.44, 1.4, 0);
-  var rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), armorMat);
-  rightArm.position.y = -0.25;
-  rightArmPivot.add(rightArm);
+  rightArmPivot.position.set(0.42, 1.4, 0);
+  var rightShoulder = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), armorMat);
+  rightShoulder.position.set(0, 0, 0);
+  var rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), jointMat);
+  rightArm.position.y = -0.28;
+  rightArmPivot.add(rightShoulder); rightArmPivot.add(rightArm);
   group.add(rightArmPivot);
 
-  // Leg Pivots & Mesh
+  // Legs
   var leftLegPivot = new THREE.Group();
-  leftLegPivot.position.set(-0.18, 0.75, 0);
-  var leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.65, 0.2), jointMat);
+  leftLegPivot.position.set(-0.16, 0.78, 0);
+  var leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 0.18), armorMat);
   leftLeg.position.y = -0.32;
   leftLegPivot.add(leftLeg);
   group.add(leftLegPivot);
 
   var rightLegPivot = new THREE.Group();
-  rightLegPivot.position.set(0.18, 0.75, 0);
-  var rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.65, 0.2), jointMat);
+  rightLegPivot.position.set(0.16, 0.78, 0);
+  var rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 0.18), armorMat);
   rightLeg.position.y = -0.32;
   rightLegPivot.add(rightLeg);
   group.add(rightLegPivot);
 
-  // Back Thruster Pack
-  var pack = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.4, 0.15), armorMat);
-  pack.position.set(0, 1.3, -0.24);
-  var glowNode = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.05), glowMat);
-  glowNode.position.set(0, 1.3, -0.3);
-  group.add(pack); group.add(glowNode);
-
-  // ATTACH WEAPON TO RIGHT ARM[cite: 1]
-  var gunMat = new THREE.MeshStandardMaterial({ color: 0x111622, roughness: 0.3, metalness: 0.8 });
-  var gunModel = new THREE.Group();
-  var gLen = (WEAPONS[gunKey || 'pistol'] || WEAPONS.pistol).length;
-  var body = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, gLen), gunMat);
-  gunModel.add(body);
-  gunModel.position.set(0, -0.4, 0.2);
+  // ATTACH FULLY DETAILED WEAPON TO RIGHT ARM (INDEPENDENT WEAPON COLORS)
+  var gunModel = createDetailedWeaponMesh(gunKey || 'rifle');
+  gunModel.position.set(0, -0.35, 0.2);
   rightArmPivot.add(gunModel);
 
   return {
@@ -716,19 +874,18 @@ function updateCharacterAnimation(rig, isMoving, dt){
   rig.animTime += dt * (isMoving ? 10 : 2);
   var t = rig.animTime;
 
-  // Recoil recovery[cite: 1]
   rig.shootRecoil = lerp(rig.shootRecoil, 0, dt * 12);
 
   if(isMoving){
     rig.leftLeg.rotation.x = Math.sin(t) * 0.6;
     rig.rightLeg.rotation.x = -Math.sin(t) * 0.6;
     rig.leftArm.rotation.x = -Math.sin(t) * 0.5;
-    rig.rightArm.rotation.x = Math.sin(t) * 0.3 - 0.4 - rig.shootRecoil; // Aim weapon forward[cite: 1]
+    rig.rightArm.rotation.x = Math.sin(t) * 0.3 - 0.4 - rig.shootRecoil;
   } else {
     rig.leftLeg.rotation.x = lerp(rig.leftLeg.rotation.x, 0, dt*8);
     rig.rightLeg.rotation.x = lerp(rig.rightLeg.rotation.x, 0, dt*8);
     rig.leftArm.rotation.x = Math.sin(t) * 0.05;
-    rig.rightArm.rotation.x = -0.4 - rig.shootRecoil; // Weapon ready stance[cite: 1]
+    rig.rightArm.rotation.x = -0.4 - rig.shootRecoil;
   }
   rig.gun.position.z = 0.2 - rig.shootRecoil * 0.15;
 }
@@ -777,33 +934,27 @@ var PowerUpSystem = {
 };
 PowerUpSystem.init();
 
-/* WEAPON VIEW-MODEL */
+/* FIRST-PERSON WEAPON VIEW-MODEL */
 var weaponGroup = new THREE.Group();
-var weaponBodyMesh = null;
-function rebuildFPSWeapon(gunKey){
-  while(weaponGroup.children.length > 0) weaponGroup.remove(weaponGroup.children[0]);
-  var bodyMat = new THREE.MeshStandardMaterial({ color:0x1a2436, roughness:0.35, metalness:0.75, emissive:0x0e3a44, emissiveIntensity:0.3 });
-  var gLen = (WEAPONS[gunKey] || WEAPONS.pistol).length;
-  weaponBodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.09,0.09,gLen), bodyMat);
-  weaponBodyMesh.position.set(0,0,-gLen/2);
-  weaponGroup.add(weaponBodyMesh);
-
-  var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.22,10), bodyMat);
-  barrel.rotation.x = Math.PI/2;
-  barrel.position.set(0,0.015,-gLen);
-  weaponGroup.add(barrel);
-
-  weaponGroup.add(muzzleLight);
-  weaponGroup.add(muzzleFlash);
-  muzzleFlash.position.set(0,0.015,-gLen-0.1);
-}
-
 var muzzleLight = new THREE.PointLight(0xbfefff, 0, 6, 2);
 var muzzleFlash = new THREE.Mesh(
   new THREE.PlaneGeometry(0.16,0.16),
   new THREE.MeshBasicMaterial({ color:0xdffcff, transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false })
 );
-rebuildFPSWeapon(selectedGunKey);
+
+function rebuildFPSWeapon(gunKey){
+  while(weaponGroup.children.length > 0) weaponGroup.remove(weaponGroup.children[0]);
+  var fpMesh = createDetailedWeaponMesh(gunKey);
+  fpMesh.rotation.y = Math.PI;
+  weaponGroup.add(fpMesh);
+
+  var wData = WEAPONS[gunKey] || WEAPONS.rifle;
+  muzzleFlash.position.set(0, 0.02, -wData.length*0.8);
+  weaponGroup.add(muzzleLight);
+  weaponGroup.add(muzzleFlash);
+}
+
+rebuildFPSWeapon(getActiveGunKey());
 weaponGroup.position.set(0.16,-0.16,-0.3);
 camera.add(weaponGroup);
 scene.add(camera);
@@ -898,8 +1049,8 @@ var SP = { wave:1, score:0, kills:0, enemies:[], active:false, waveEnemiesLeft:0
 
 function spawnBot(diffMul){
   var a = rand(0,Math.PI*2), r = rand(16, ARENA_HALF-3);
-  var botGunKey = choice(['pistol', 'rifle', 'shotgun']);
-  var rig = createHumanoidModel(0x5a2045, 0xff3d9a, botGunKey);
+  var botGunKey = choice(['rifle', 'shotgun', 'pistol', 'smg', 'grenade']);
+  var rig = createRefinedHumanoidModel(0x5a2045, 0xff3d9a, botGunKey);
   var bot = { rig: rig, gunKey: botGunKey, x: Math.cos(a)*r, z: Math.sin(a)*r, hp: 60 + SP.wave*8, speed: rand(1.6,2.3)*diffMul, fireTimer: rand(0.5,1.5), fireRate: Math.max(0.9, 2.6 - SP.wave*0.08), dmg: 4 + Math.floor(SP.wave*0.6), strafeDir: choice([-1,1]), strafeTimer: rand(1,3), alive: true };
   bot.rig.group.position.set(bot.x, 0, bot.z);
   scene.add(bot.rig.group);
@@ -908,7 +1059,7 @@ function spawnBot(diffMul){
 
 function startWave(){
   $('waveNum').textContent = SP.wave;
-  var count = Math.min(3 + Math.floor(SP.wave*1.3), 12);
+  var count = Math.min(3 + Math.floor(SP.wave*1.3), 14);
   for(var i=0;i<count;i++) spawnBot(1 + SP.wave*0.06);
   SP.waveEnemiesLeft = count;
   showWaveBanner('WAVE ' + SP.wave);
@@ -932,13 +1083,12 @@ function updateBots(dt){
     b.x = c[0]; b.z = c[1];
     b.rig.group.position.set(b.x,0,b.z); b.rig.group.lookAt(player.x, 0, player.z);
 
-    // Update Bot limb & shooting animations[cite: 1]
     updateCharacterAnimation(b.rig, mlen > 0.1, dt);
 
     b.fireTimer -= dt;
     if(b.fireTimer <= 0 && dist < 22 && player.alive){
       b.fireTimer = b.fireRate;
-      b.rig.shootRecoil = 0.8; // Trigger enemy shooting animation recoil[cite: 1]
+      b.rig.shootRecoil = 0.8;
       spawnTracer(new THREE.Vector3(b.x, 1.2, b.z), new THREE.Vector3(player.x, PLAYER_HEIGHT, player.z));
       if(Math.random() < clamp(1 - dist/26, 0.12, 0.72)) damagePlayer(b.dmg);
     }
@@ -980,7 +1130,7 @@ function startSinglePlayer(){
 
 function endSinglePlayer(){
   SP.active = false; player.alive = false; App.prevPlayState = STATE.SP_PLAY;
-  if(SP.score > bestScore){ bestScore = SP.score; Store.set('shootermemo_best_sp', bestScore); $('bestScoreChip').textContent = bestScore; $('newBestTag').classList.add('show');} else $('newBestTag').classList.remove('show');
+  if(SP.score > bestScore){ bestScore = SP.score; Store.set('shootermemo_best_sp', bestScore); $('bestScoreChip').textContent = bestScore; }
   $('goTitle').textContent = 'Mission Over'; $('goSub').textContent = 'Overwhelmed at wave ' + SP.wave;
   $('goScore').textContent = SP.score; $('goWave').textContent = SP.wave; $('goBest').textContent = bestScore;
   setState(STATE.GAMEOVER); exitLock();
@@ -1001,7 +1151,7 @@ Net.clearRemotePlayers = function(){ Object.keys(Net.remote).forEach(function(id
 
 function ensureRemote(id, name, gunKey){
   if(Net.remote[id]) return Net.remote[id];
-  var rig = createHumanoidModel(0x14202f, 0x3df2ff, gunKey);
+  var rig = createRefinedHumanoidModel(0x14202f, 0x3df2ff, gunKey);
   scene.add(rig.group);
   var r = { rig:rig, name:name||'PLAYER', pos:new THREE.Vector3(), rotY:0, targetPos:new THREE.Vector3(), targetRotY:0, hp:100, alive:true };
   Net.remote[id] = r; return r;
@@ -1026,7 +1176,7 @@ function handleNetMessage(msg, fromConnId){
       break;
     case 'shot':
       if(msg.from === Net.myId) return;
-      if(Net.remote[msg.from]) Net.remote[msg.from].rig.shootRecoil = 0.8; // Recoil animation for other multiplayer players[cite: 1]
+      if(Net.remote[msg.from]) Net.remote[msg.from].rig.shootRecoil = 0.8;
       spawnTracer(new THREE.Vector3(msg.fx,msg.fy,msg.fz), new THREE.Vector3(msg.tx,msg.ty,msg.tz)); break;
     case 'hit':
       if(msg.target === Net.myId) damagePlayerMP(msg.dmg, msg.from); break;
@@ -1083,7 +1233,7 @@ function joinRoom(){
     conn.on('open', function(){
       Net.conns.host = conn; setupPeerHandlers(conn, 'host');
       $('joinStatus').textContent = 'Connected!'; $('joinStatus').className = 'status-line ok';
-      conn.send(JSON.stringify({ type:'join', from:Net.myId, name:Net.myName, gunKey:selectedGunKey }));
+      conn.send(JSON.stringify({ type:'join', from:Net.myId, name:Net.myName, gunKey:getActiveGunKey() }));
     });
   });
 }
@@ -1105,7 +1255,7 @@ function updateMultiplayer(dt){
   mpStateTimer -= dt;
   if(mpStateTimer <= 0){
     mpStateTimer = 0.06;
-    netSend({ type:'state', from:Net.myId, name:Net.myName, gunKey:selectedGunKey, x:player.x, y:player.y, z:player.z, ry:player.yaw, hp:player.hp, alive:player.alive });
+    netSend({ type:'state', from:Net.myId, name:Net.myName, gunKey:getActiveGunKey(), x:player.x, y:player.y, z:player.z, ry:player.yaw, hp:player.hp, alive:player.alive });
   }
   Object.keys(Net.remote).forEach(function(id){
     var r = Net.remote[id];
@@ -1113,7 +1263,6 @@ function updateMultiplayer(dt){
     r.pos.lerp(r.targetPos, Math.min(1, dt*12)); r.rotY = lerp(r.rotY, r.targetRotY, Math.min(1, dt*12));
     r.rig.group.position.copy(r.pos); r.rig.group.rotation.y = r.rotY; r.rig.group.visible = r.alive;
 
-    // Animate Remote Multiplayer Players based on movement speed[cite: 1]
     var distMoved = r.pos.distanceTo(oldPos);
     updateCharacterAnimation(r.rig, distMoved > 0.01, dt);
   });
@@ -1144,7 +1293,15 @@ function exitLock(){ if(document.exitPointerLock) document.exitPointerLock(); }
 document.addEventListener('pointerlockchange', function(){ pointerLocked = (document.pointerLockElement === canvas); });
 
 var keys = {};
-window.addEventListener('keydown', function(e){ keys[e.code] = true; if(e.code==='Escape') togglePause(); if(e.code==='Space'){ tryJump(); e.preventDefault(); } });
+window.addEventListener('keydown', function(e){
+  keys[e.code] = true;
+  if(e.code==='Escape') togglePause();
+  if(e.code==='Space'){ tryJump(); e.preventDefault(); }
+  if(e.code==='Digit1'){ switchWeaponSlot(0); }
+  if(e.code==='Digit2'){ switchWeaponSlot(1); }
+  if(e.code==='Digit3'){ switchWeaponSlot(2); }
+  if(e.code==='Digit4'){ switchWeaponSlot(3); }
+});
 window.addEventListener('keyup', function(e){ keys[e.code]=false; });
 
 canvas.addEventListener('click', function(){ if(!isTouch && isPlayingState(App.state)) requestLock(); });
@@ -1219,10 +1376,25 @@ bindHold(btnJump, function(){ tryJump(); });
 function tryJump(){ if(isPlayingState(App.state) && player.grounded && player.alive){ player.vy = 4.6; player.grounded = false; } }
 function isPlayingState(s){ return s===STATE.SP_PLAY || s===STATE.MP_PLAY; }
 
-/* SHOOTING */
+/* WEAPON SWITCHING */
+function switchWeaponSlot(slotIdx){
+  activeSlotIndex = slotIdx;
+  updateLoadoutDockUI();
+  rebuildFPSWeapon(getActiveGunKey());
+}
+
+document.querySelectorAll('.wpn-slot').forEach(function(slotEl){
+  slotEl.addEventListener('click', function(){
+    var idx = parseInt(slotEl.getAttribute('data-slot-idx'), 10);
+    switchWeaponSlot(idx);
+  });
+});
+
+/* SHOOTING LOGIC */
 var raycaster = new THREE.Raycaster();
 function tryFire(now){
-  var currentGun = WEAPONS[selectedGunKey] || WEAPONS.pistol;
+  var currentGunKey = getActiveGunKey();
+  var currentGun = WEAPONS[currentGunKey] || WEAPONS.rifle;
   if(!fireHeld || !player.alive || now-lastShot < currentGun.rate) return;
   lastShot = now; weaponBob.recoil = 1; muzzleFlash.material.opacity = 1; muzzleLight.intensity = 3.2; addShake(0.01);
   var dir = new THREE.Vector3(); camera.getWorldDirection(dir);
@@ -1237,7 +1409,7 @@ function tryFire(now){
       hitPoint = hits[0].point;
       var obj = hits[0].object; while(obj.parent && meshes.indexOf(obj)===-1) obj = obj.parent;
       var bot = map[meshes.indexOf(obj)];
-      if(bot){ bot.hp -= currentGun.damage; burst(hits[0].point, 0x3df2ff, 10, 2.2); if(bot.hp<=0) killBot(bot); }
+      if(bot){ bot.hp -= currentGun.damage; burst(hits[0].point, currentGun.accentColor, 10, 2.2); if(bot.hp<=0) killBot(bot); }
     }
     spawnTracer(weaponGroup.getWorldPosition(new THREE.Vector3()), hitPoint);
   } else if(App.mode==='mp'){
@@ -1245,7 +1417,7 @@ function tryFire(now){
     Object.keys(Net.remote).forEach(function(id){ if(Net.remote[id].alive){ meshes.push(Net.remote[id].rig.group); map.push(id); } });
     var hits = raycaster.intersectObjects(meshes, true), hitPoint = farPoint;
     if(hits.length){
-      hitPoint = hits[0].point; burst(hitPoint, 0x3df2ff, 10, 2.2);
+      hitPoint = hits[0].point; burst(hitPoint, currentGun.accentColor, 10, 2.2);
       var obj = hits[0].object; while(obj.parent && meshes.indexOf(obj)===-1) obj = obj.parent;
       var targetId = map[meshes.indexOf(obj)];
       netSend({ type:'hit', from:Net.myId, target:targetId, dmg:currentGun.damage });
@@ -1256,26 +1428,28 @@ function tryFire(now){
   }
 }
 
-/* MAP SELECT HANDLER */
-document.querySelectorAll('.map-card').forEach(function(card){
-  card.addEventListener('click', function(){
-    document.querySelectorAll('.map-card').forEach(function(c){ c.classList.remove('selected'); });
-    card.classList.add('selected');
-    App.selectedMap = card.getAttribute('data-map');
+/* SHOP LOADOUT BUILDER SELECTION */
+function updateShopSelectionCards(){
+  document.querySelectorAll('.shop-card').forEach(function(card){
+    var slot = card.getAttribute('data-slot');
+    var gun = card.getAttribute('data-gun');
+    if(myLoadout[slot] === gun){ card.classList.add('selected'); } else { card.classList.remove('selected'); }
   });
-});
+}
 
-/* SHOP SELECTION HANDLER */
 document.querySelectorAll('.shop-card').forEach(function(card){
   card.addEventListener('click', function(){
-    document.querySelectorAll('.shop-card').forEach(function(c){ c.classList.remove('selected'); });
-    card.classList.add('selected');
-    selectedGunKey = card.getAttribute('data-gun');
-    Store.set('shootermemo_equipped_gun', selectedGunKey);
-    $('activeGunLabel').textContent = WEAPONS[selectedGunKey].name;
-    rebuildFPSWeapon(selectedGunKey);
+    var slot = card.getAttribute('data-slot');
+    var gun = card.getAttribute('data-gun');
+    myLoadout[slot] = gun;
+    Store.set('shootermemo_loadout', myLoadout);
+    updateShopSelectionCards();
+    updateLoadoutDockUI();
+    rebuildFPSWeapon(getActiveGunKey());
   });
 });
+updateShopSelectionCards();
+updateLoadoutDockUI();
 
 /* ENGINE LOOP */
 function updatePlayerMovement(dt){
